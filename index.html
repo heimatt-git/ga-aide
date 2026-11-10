@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#991e23">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GA Aide">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Aide de jeu Gundam Assemble</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap">
+<style>
+/* Concept : table de commandement. Piste Timeline rouge/bleu comme sur le plateau, bandeaux des cartes unité repris pour les fiches, barre de navigation basse pour le pouce. */
+:root{
+  --bg:#f3f1f1; --surface:#ffffff; --s2:#efe9e9; --fg:#1a1a1c; --muted:#666666; --line:#dcc9ca; --hair:rgba(153,30,35,.18); --brand:#991e23; --brand2:#6f1216; --navy:#00213f;
+  --red:#b51e23; --red-t:#fbe9ea; --blue:#004883; --blue-t:#e3edf7; --on-sd:#ffffff;
+  --acc:#e7b008; --acc-fg:#17130a; --good:#1e8a4b; --bad:#c4252d; --scrim:rgba(10,14,18,.5); --pink:#b3267f; --green:#4f8f12; --teal:#1b8aa6; --on-good:#ffffff;
+  --f-d:'Oswald','Arial Narrow',system-ui,sans-serif;
+  --f-b:'Noto Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#001120; --surface:#0a2038; --s2:#12304f; --fg:#eef1f5; --muted:#9db0c4; --line:#1f4468; --hair:rgba(157,176,196,.22); --brand:#b51e23; --brand2:#7a1317; --navy:#001120;
+    --red:#ff6a70; --red-t:#3a1218; --blue:#6fb0ff; --blue-t:#0c2c4d; --on-sd:#0d1116;
+    --acc:#f2c230; --acc-fg:#17130a; --good:#4cc88a; --bad:#ff6068; --scrim:rgba(0,0,0,.6); --pink:#ff7ac6; --green:#a6d85a; --teal:#58c7e3; --on-good:#0b1a12; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#001120; --surface:#0a2038; --s2:#12304f; --fg:#eef1f5; --muted:#9db0c4; --line:#1f4468; --hair:rgba(157,176,196,.22); --brand:#b51e23; --brand2:#7a1317; --navy:#001120;
+  --red:#ff6a70; --red-t:#3a1218; --blue:#6fb0ff; --blue-t:#0c2c4d; --on-sd:#0d1116;
+  --acc:#f2c230; --acc-fg:#17130a; --good:#4cc88a; --bad:#ff6068; --scrim:rgba(0,0,0,.6); --pink:#ff7ac6; --green:#a6d85a; --teal:#58c7e3; --on-good:#0b1a12; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-b);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 110px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3,h4{font-family:var(--f-d);margin:0;text-wrap:balance;line-height:1.15}
+.A{--sd:var(--red);--sdt:var(--red-t)} .B{--sd:var(--blue);--sdt:var(--blue-t)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.num,.vp,.stat b,.tn{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .sm{font-size:13px}
+.lbl{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* boutons */
+.b{min-height:38px;padding:0 13px;border:1px solid var(--line);background:var(--surface);border-radius:6px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.b:hover{background:var(--s2)}
+.b.pri{background:var(--acc);color:var(--acc-fg);border-color:transparent;font-weight:600}
+.b.pri:hover{filter:brightness(1.06)}
+.b.s{min-height:32px;padding:0 10px;font-size:13.5px}
+.b.xs{min-height:28px;padding:0 8px;font-size:13px}
+.b.danger{color:var(--bad);border-color:var(--bad)}
+.b[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.b.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+
+/* entête */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:0}
+.brand h1{font-size:20px;letter-spacing:.02em;font-weight:700}
+.brand span{font-size:12px;color:var(--muted)}
+.tools{display:flex;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);min-height:34px;padding:0 11px;font-weight:600;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+
+/* score */
+.score{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch}
+.pl{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--sd);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pl input.pname{width:100%;min-width:0;border:0;border-bottom:1px dashed var(--line);background:transparent;font-family:var(--f-d);font-weight:600;font-size:14px;color:var(--sd);padding:2px 0}
+.pl .vprow{display:flex;align-items:baseline;gap:6px}
+.vp{font-family:var(--f-d);font-size:38px;font-weight:700;line-height:1}
+.pl .vprow span{font-size:12px;color:var(--muted);font-weight:600}
+.pl .row{display:flex;gap:4px;flex-wrap:wrap}
+.deck{font-size:12px;color:var(--muted)}
+.mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 4px;text-align:center}
+.mid .ph{font-family:var(--f-d);font-weight:700;font-size:15px}
+.mid .rd{font-size:12px;color:var(--muted)}
+.mid .big{font-family:var(--f-d);font-size:30px;font-weight:700;line-height:1;color:var(--fg)}
+
+/* panneaux */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{font-size:17px}
+.card h3{font-size:15px}
+.banner{border:1px solid var(--line);border-left:6px solid var(--acc);background:var(--surface);border-radius:6px;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner.A{border-left-color:var(--red)} .banner.B{border-left-color:var(--blue)}
+.banner .who{display:flex;align-items:center;gap:10px;min-width:0}
+.banner h2{font-size:17px}
+.banner p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.empty{text-align:left;align-items:flex-start}
+
+/* timeline */
+.track{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.lane,.nums{display:grid;grid-template-columns:repeat(10,minmax(0,1fr))}
+.lane.A{background:var(--red-t)} .lane.B{background:var(--blue-t)}
+.cell{min-height:42px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;border-left:1px solid var(--hair);min-width:0}
+.cell:first-child{border-left:0}
+.cell.now{box-shadow:inset 0 0 0 2px var(--acc)}
+.nums .num{font-family:var(--f-d);text-align:center;padding:5px 0;background:var(--s2);font-weight:600;font-size:14px;color:var(--muted)}
+.nums .num.big{font-size:18px;color:var(--fg)}
+.nums .num.now{background:var(--acc);color:var(--acc-fg)}
+.chip{width:min(34px,100%);aspect-ratio:1;border-radius:50%;border:2px solid var(--surface);background:var(--sd);color:var(--on-sd);font-family:var(--f-d);font-weight:700;font-size:11px;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.chip.res{border-style:dashed;border-color:var(--on-sd);opacity:.85}
+.chip.next{box-shadow:0 0 0 3px var(--acc)}
+.chip.sel{outline:2px solid var(--fg);outline-offset:1px}
+.chip.lg{width:40px;font-size:13px}
+.tl-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.tray{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center;font-size:13px}
+.tray .it{display:inline-flex;align-items:center;gap:5px}
+
+/* sections unites */
+.sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.col>h2{font-size:15px;color:var(--sd);display:flex;justify-content:space-between;align-items:baseline}
+.ucard{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ucard.sel{box-shadow:0 0 0 2px var(--fg)}
+.ucard.off{opacity:.6}
+.band{background:var(--sd);color:var(--on-sd);display:flex;gap:14px;align-items:baseline;padding:7px 14px 7px 22px;clip-path:polygon(16px 0,100% 0,100% 100%,0 100%,0 16px);flex-wrap:wrap}
+.stat{display:inline-flex;align-items:baseline;gap:4px}
+.stat i{font-style:normal;font-size:11px;font-weight:700;opacity:.8;letter-spacing:.05em;font-family:var(--f-d)}
+.stat b{font-family:var(--f-d);font-size:22px;line-height:1}
+.stat small{font-size:12px;opacity:.8}
+.band .pos{margin-left:auto;font-size:12.5px;font-weight:600}
+.ubody{padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.ubody h3{font-size:18px;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.ubody h3 small{font-family:var(--f-b);font-size:12.5px;color:var(--muted);font-weight:400}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line);background:var(--s2)}
+.badge.act{background:var(--acc);color:var(--acc-fg);border-color:transparent}
+.hpbar{height:9px;border-radius:5px;background:var(--s2);overflow:hidden}
+.hpbar i{display:block;height:100%;background:var(--good)}
+.hpbar i.low{background:var(--bad)}
+.rowc{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rowc.sp{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px}
+.grid2.one{grid-template-columns:1fr}
+.step{display:flex;align-items:center;gap:6px;justify-content:space-between;min-width:0}
+.step>span{font-size:13px;color:var(--muted);flex:1;min-width:0}
+.step .tn{min-width:26px;text-align:center;font-family:var(--f-d);font-weight:700;font-size:17px}
+.step .b{min-height:30px;min-width:32px;padding:0 8px}
+.sh{width:18px;height:21px;display:inline-block;clip-path:polygon(50% 0,100% 14%,100% 58%,50% 100%,0 58%,0 14%);background:var(--s2);border:0;padding:0;cursor:pointer}
+.sh.on{background:var(--acc)}
+.shields{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+details{border-top:1px solid var(--hair);padding-top:8px}
+summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--muted);padding:4px 0}
+details[open]>summary{margin-bottom:6px}
+.wlist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.wlist li{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;font-size:13.5px}
+.wlist .wn{font-weight:600}
+.wst{font-family:var(--f-d);font-size:13px;white-space:nowrap;color:var(--muted)}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.frm label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+.frm input,.frm select,.in{min-height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 9px;min-width:0;width:100%;color:var(--fg)}
+.frm .full{grid-column:1/-1}
+.chk{flex-direction:row!important;align-items:center;gap:8px!important}
+.chk input{width:auto;min-height:0}
+.log{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:13px;max-height:220px;overflow:auto}
+.log li{padding:3px 0;border-bottom:1px solid var(--hair)}
+
+/* calc */
+.calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
+.tg{min-height:34px;padding:0 11px;border:1px solid var(--line);background:var(--surface);border-radius:99px;font-size:13px;font-weight:500}
+.tg[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.dice{display:flex;gap:6px;flex-wrap:wrap}
+.d{min-width:40px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.d b{font-family:var(--f-d);font-size:19px}
+.d small{font-size:10.5px;color:var(--muted)}
+.d.hit{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--surface))}
+.d.crit{border-color:var(--acc);background:var(--acc);color:var(--acc-fg)}
+.d.crit small{color:var(--acc-fg)}
+.d.miss{opacity:.55}
+.cres{display:flex;flex-direction:column;gap:6px}
+.chain{display:flex;flex-direction:column;gap:3px;font-size:14px;margin:0;padding:0;list-style:none}
+.chain li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--hair);padding:3px 0}
+.chain li b{font-variant-numeric:tabular-nums}
+.final{font-family:var(--f-d);font-size:26px;font-weight:700}
+.note{font-size:13px;color:var(--muted);margin:0}
+.warn{font-size:13px;color:var(--bad);margin:0}
+
+/* regles */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.fact b{font-family:var(--f-d);font-size:20px;line-height:1.1}
+.fact span{font-size:12.5px;color:var(--muted)}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:0 14px}
+.rule summary{font-family:var(--f-d);font-size:16px;color:var(--fg);padding:12px 0}
+.rule ul{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:5px;max-width:70ch}
+.src{font-size:12px;color:var(--muted)}
+.gl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px}
+.gl .term{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.gl h3{font-size:15px}
+.gl h3 small{font-family:var(--f-b);font-weight:400;color:var(--muted);font-size:12.5px}
+.gl p{margin:4px 0 0;font-size:14px}
+
+/* navigation et couches */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:4px max(8px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px))}
+.nav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:12px;font-weight:600;color:var(--muted);border-radius:6px}
+.nav button[aria-current="page"]{color:var(--fg);background:var(--s2)}
+.nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mini{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:21;padding:0 max(12px,env(safe-area-inset-left,0px));display:flex;justify-content:center}
+.mini>div{width:min(100%,720px);background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--sd);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:10px;justify-content:space-between;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:29}
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,720px);max-height:88dvh;overflow:auto;z-index:30;background:var(--surface);border-top:4px solid var(--sd);border-radius:12px 12px 0 0;
+  padding:14px max(16px,env(safe-area-inset-left,0px)) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.sheet header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.sheet h2{font-size:19px}
+.sec{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--hair)}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.acts .b{flex-direction:column;height:auto;padding:8px;gap:1px;white-space:normal;text-align:center}
+.acts .b small{font-weight:400;color:var(--muted);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--fg);color:var(--bg);padding:8px 8px 8px 14px;border-radius:8px;display:flex;gap:10px;align-items:center;max-width:calc(100% - 32px);font-size:14px}
+.toast button{border:1px solid currentColor;background:transparent;border-radius:6px;min-height:30px;padding:0 10px;font-weight:600;color:inherit}
+@media (max-width:520px){
+  .score{grid-template-columns:1fr 1fr}
+  .mid{grid-column:1/-1;order:-1;flex-direction:row;gap:12px;justify-content:space-between;padding:6px 2px}
+  .mid .big{font-size:24px}
+  .nums .num{font-size:12px}.nums .num.big{font-size:15px}
+}
+@media (prefers-reduced-motion:no-preference){.chip,.b{transition:background .12s,box-shadow .12s}}
+
+/* schémas */
+.sv{width:100%;height:auto;display:block;max-width:440px}
+.sv.small{max-width:150px}
+.sv-t{font-family:var(--f-b);font-size:11px;fill:var(--fg)}
+.sv-t.c{text-anchor:middle} .sv-t.b{font-weight:700} .sv-t.m{fill:var(--muted)}
+.sv-t.w{fill:var(--on-sd);font-family:var(--f-d);font-weight:700;text-anchor:middle;font-size:11px}
+.sv-t.on-g{fill:var(--on-good)} .sv-t.on-a{fill:var(--acc-fg)} .sv-t.neg{fill:var(--bad);text-anchor:middle}
+.tk-cell{fill:var(--surface);stroke:var(--line)} .tk-cell.A{fill:var(--red-t)} .tk-cell.B{fill:var(--blue-t)}
+.tkA{fill:var(--red)} .tkB{fill:var(--blue)}
+.ghost{fill:none;stroke-width:2;stroke-dasharray:3 3} .ghost.A{stroke:var(--red)} .ghost.B{stroke:var(--blue)}
+.ar{stroke:var(--fg);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round} .ar.dash{stroke-dasharray:5 4} .ah{fill:var(--fg)}
+.hx{fill:var(--s2);stroke:var(--bg);stroke-width:1} .hx-ok{fill:color-mix(in srgb,var(--good) 38%,var(--surface));stroke:var(--bg)}
+.hx-me{fill:var(--blue)} .hx-e{fill:var(--red)} .hx-w{fill:var(--fg);opacity:.8}
+.dc-miss{fill:var(--s2)} .dc-hit{fill:var(--good)} .dc-crit{fill:var(--acc)}
+.ground{fill:var(--s2);stroke:var(--line)} .terr{fill:var(--muted)} .terr2{fill:var(--fg);opacity:.78}
+.u-me{fill:var(--blue)} .u-en{fill:var(--red)} .u-al{fill:var(--blue);opacity:.5}
+.los{stroke:var(--acc);stroke-width:2.5;stroke-dasharray:6 4;fill:none} .los.bad{stroke:var(--bad)} .los.good{stroke:var(--good)}
+.vgood{fill:var(--good)} .vbad{fill:var(--bad)} .vmark{stroke:var(--on-good);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.vbad~.vmark{stroke:var(--on-sd)}
+.seg.wide{display:flex;width:100%} .seg.wide button{flex:1;min-height:42px;font-size:14px}
+.chap{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0;scroll-margin-top:12px}
+.chap header{display:flex;align-items:center;gap:12px}
+.cn{width:34px;height:34px;border-radius:50%;background:var(--fg);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-d);font-weight:700;flex:none}
+.chap h2{font-size:21px}
+.lead{margin:0;max-width:62ch;font-size:16px}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px;align-items:start}
+.fig{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0;background:var(--bg);border-radius:6px;padding:12px}
+.fig figcaption{font-size:13px;color:var(--muted)}
+.eg{border-top:1px dashed var(--line);padding-top:10px} .eg p{margin:4px 0 0;max-width:66ch}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
+.flow{display:flex;flex-direction:column;gap:3px;align-items:stretch}
+.fb{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface);font-size:14px}
+.fb.s{background:var(--s2);font-weight:600;text-align:center}
+.fb.main{border:2px solid var(--acc)}
+.ch{text-align:center;color:var(--muted);line-height:1;font-size:12px;font-style:normal}
+.four{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+.four div{background:var(--s2);border-radius:5px;padding:6px 8px;font-size:13px} .four b{display:block;font-family:var(--f-d)}
+.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.steps li{display:flex;gap:10px;align-items:center;font-size:14px;flex-wrap:wrap}
+.steps li.grp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:4px}
+.sn{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--fg);font-family:var(--f-d);font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.steps li.roll .sn{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
+.rt{font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;color:var(--on-sd);white-space:nowrap}
+.rt.before{background:var(--pink)} .rt.after{background:var(--green)} .rt.dmg{background:var(--teal)}
+.eq{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.eqb{border:1px solid var(--line);border-radius:6px;padding:6px 8px;text-align:center;background:var(--surface);min-width:58px}
+.eqb b{display:block;font-family:var(--f-d);font-size:24px;line-height:1.1}
+.eqo{font-family:var(--f-d);font-size:24px}
+.phs{display:flex;flex-direction:column;gap:6px}
+.sq{display:grid;grid-template-columns:repeat(10,1fr);gap:2px}
+.sq i{font-style:normal;text-align:center;font-size:11px;background:var(--s2);border-radius:3px;padding:4px 0;color:var(--muted);font-variant-numeric:tabular-nums}
+.chain-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.cr{background:var(--s2);border-radius:99px;padding:3px 10px}
+.sep{color:var(--muted)}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block;flex:none;border:1px solid var(--line)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ab{font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:2px 7px;background:var(--surface)}
+.ab i{font-style:normal;color:var(--muted);font-size:11.5px}
+.ab.c{border-color:var(--blue)} .ab.r{border-color:var(--acc)} .ab.o{border-color:var(--good)}
+.tiles.one{grid-template-columns:1fr}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface);display:flex;flex-direction:column;gap:3px;min-width:0}
+.tile>b{font-family:var(--f-d);font-size:19px;line-height:1.15}
+.prec{width:100%;border-collapse:collapse;font-size:14px}
+.prec td{padding:6px 4px;border-bottom:1px solid var(--hair)}
+.prec td:first-child{width:24px} .prec td:last-child{text-align:right;font-family:var(--f-d);font-weight:700;white-space:nowrap}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.ml{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.adesc{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--muted)}.adesc b{color:var(--fg)}
+/* ===== Habillage inspiré du site officiel (rouge sombre, fond blanc à motif hexagonal, titres Oswald) ===== */
+body{background-color:var(--bg);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='194' viewBox='0 0 112 194'%3E%3Cg fill='none' stroke='%23991e23' stroke-opacity='.07' stroke-width='2'%3E%3Cpath d='M56 2l52 30v60l-52 30-52-30V32zM56 122l52 30v40M56 122L4 152v40'/%3E%3C/g%3E%3C/svg%3E");background-attachment:fixed}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='194' viewBox='0 0 112 194'%3E%3Cg fill='none' stroke='%2369a3ff' stroke-opacity='.07' stroke-width='2'%3E%3Cpath d='M56 2l52 30v60l-52 30-52-30V32zM56 122l52 30v40M56 122L4 152v40'/%3E%3C/g%3E%3C/svg%3E")}}
+:root[data-theme="dark"] body{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='194' viewBox='0 0 112 194'%3E%3Cg fill='none' stroke='%2369a3ff' stroke-opacity='.07' stroke-width='2'%3E%3Cpath d='M56 2l52 30v60l-52 30-52-30V32zM56 122l52 30v40M56 122L4 152v40'/%3E%3C/g%3E%3C/svg%3E")}
+h1,h2{text-transform:uppercase;letter-spacing:.04em}
+h1,h2,h3,.vp,.mid .big,.mid .ph{font-weight:600}
+.top{background:linear-gradient(180deg,#b51e23 0%,#8a1a1e 55%,#6f1216 100%);color:#fff;padding:10px 16px 14px 20px;margin:0 -4px;clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 10px));box-shadow:0 4px 10px rgba(69,3,7,.3)}
+.brand h1{font-size:23px;letter-spacing:.06em;font-style:italic;font-weight:700;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.brand span{color:rgba(255,255,255,.82);letter-spacing:.04em}
+.top .b{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.55);color:#fff}
+.top .b:hover{background:rgba(255,255,255,.22)}
+.top .seg{border-color:rgba(255,255,255,.55);background:rgba(0,0,0,.18)}
+.top .seg button{background:transparent;color:#fff}
+.top .seg button[aria-pressed="true"]{background:#fff;color:var(--brand)}
+.b,.seg,.card,.ucard,.pl,.banner,.track,.sheet,.fb{border-radius:0}
+.b{border-color:var(--bt,var(--brand));color:var(--bt,var(--brand));background:var(--surface);font-weight:600;letter-spacing:.02em}
+.b:hover{background:var(--red-t)}
+.b.pri{background:linear-gradient(180deg,#b51e23,#7d1519);color:#fff;border-color:#5c0f13;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 0 rgba(69,3,7,.35);text-transform:uppercase;letter-spacing:.05em}
+.b.pri:hover{filter:brightness(1.12)}
+.b[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.card,.ucard{border:1px solid var(--line);border-left:4px solid var(--brand);box-shadow:0 2px 8px rgba(69,3,7,.1);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.card>h2,.card>h3:first-child{color:var(--brand)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card>h2,:root:not([data-theme="light"]) .card>h3:first-child{color:var(--red)}}
+:root[data-theme="dark"] .card>h2,:root[data-theme="dark"] .card>h3:first-child{color:var(--red)}
+.pl{border-top-width:4px;box-shadow:0 2px 8px rgba(69,3,7,.1)}
+.vp{text-shadow:0 2px 0 rgba(69,3,7,.12)}
+.nav{background:linear-gradient(180deg,#8a1a1e,#5f0f13);border-top:0;box-shadow:0 -3px 10px rgba(69,3,7,.35)}
+.nav button{color:rgba(255,255,255,.72);border-radius:0;font-family:var(--f-d);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.nav button[aria-current="page"]{color:#fff;background:rgba(0,0,0,.28);box-shadow:inset 0 -3px 0 var(--acc)}
+.lbl{color:var(--brand);letter-spacing:.1em}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lbl{color:var(--red)}}
+:root[data-theme="dark"] .lbl{color:var(--red)}
+.nums .num{background:var(--navy);color:#fff}
+.nums .num.big{color:#fff}
+.nums .num.now{background:var(--acc);color:var(--acc-fg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bt:#ff8a90}}
+:root[data-theme="dark"]{--bt:#ff8a90}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top" id="hdr"></header>
+  <section class="score" id="score"></section>
+  <main id="view" style="display:flex;flex-direction:column;gap:14px"></main>
+</div>
+<div class="mini" id="mini" hidden></div>
+<div id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<nav class="nav" id="nav" aria-label="Navigation"></nav>
+<script>
+/* ===== Données : règles résumées, glossaire, aide-mémoire, unités d'exemple ===== */
+const FACTS=[
+ {k:'2 × 10',fr:'phases × rounds (20 rounds)',en:'phases × rounds (20 rounds)'},
+ {k:'3',fr:'cases d\'Avance (+ Vitesse)',en:'hexes per Advance (+ Speed)'},
+ {k:'2 TL',fr:'Sprint (2 cases), Recharge (+1 Énergie), Secours (+2 PV)',en:'Dash (2 hexes), Energize (+1 Energy), Rescue (+2 VP)'},
+ {k:'≥ 4',fr:'pour toucher (d10)',en:'to hit (d10)'},
+ {k:'1',fr:'rate toujours, quelle que soit la Précision',en:'always a miss, whatever the Accuracy'},
+ {k:'9-10',fr:'coup critique, touche toujours',en:'critical hit, always hits'},
+ {k:'± 1',fr:'Précision selon l\'altitude (cible haute −1, basse +1)',en:'Accuracy by elevation (target higher −1, lower +1)'},
+ {k:'+2 TL',fr:'pénalité quand une unité est vaincue',en:'penalty when a unit is defeated'},
+ {k:'9',fr:'cartes Tactique par deck (3 en main au départ)',en:'Tactics cards per deck (3 drawn at start)'},
+ {k:'1',fr:'carte Tactique maximum par activation',en:'Tactics card at most per activation'},
+ {k:'−1 case',fr:'si Engagée, dans l\'eau ou les débris',en:'if Engaged, in water or debris'},
+ {k:'2 dégâts',fr:'collision (Poussée / Traction)',en:'collision damage (Push / Pull)'}
+];
+
+const RULES=[
+{id:'goal',
+ fr:{t:'But du jeu',b:[
+  'Une partie compte 2 phases de 10 rounds, soit 20 rounds. Les joueurs activent leurs unités à chaque round.',
+  'On marque des points de victoire (PV) en battant des unités ennemies et des Garnisons, en secourant des Garnisons alliées et en remplissant les objectifs du scénario.',
+  'Le joueur qui a le plus de PV à la fin de la partie gagne. En cas d\'égalité, le dernier joueur à avoir agi gagne.']},
+ en:{t:'Object of the game',b:[
+  'A game has 2 Phases of 10 rounds each, 20 rounds in total. Players activate their units every round.',
+  'Earn victory points (VP) by defeating enemy units and Garrisons, Rescuing allied Garrisons and completing scenario goals.',
+  'The player with the most VP at the end wins. On a tie, the last player to act wins.']}},
+{id:'setup',
+ fr:{t:'Mise en place',b:[
+  'Chaque joueur construit son escouade et son deck de 9 cartes Tactique avant la partie.',
+  '1. Plateau au centre. 2. Placez selon le scénario : Bases ou Porte-vaisseaux, Garnisons, Améliorations, Énergie, Objectifs, Terrain.',
+  '3. À portée de tous : Améliorations supplémentaires, jetons de statut, Énergie, dés d\'attaque, jetons de contrôle.',
+  '4. Piste Timeline près du plateau. 5. Chaque joueur dévoile ses unités (figurine, carte, jeton Timeline).',
+  '6. Placez chaque jeton Timeline sur la case égale au TL de départ ; en cas de même case, empilez dans l\'ordre voulu (le haut agit en premier).',
+  '7. Le joueur dont l\'unité a le plus petit TL de départ commence. Égalité entre joueurs : chacun lance un dé d\'attaque, le plus haut commence.',
+  '8. Résolvez les capacités de Mise en place (Setup) dans l\'ordre d\'activation.',
+  'Les unités commencent en Réserve, pas sur le plateau. Chaque joueur pioche 3 cartes Tactique.']},
+ en:{t:'Setup',b:[
+  'Each player builds a squad and a 9-card Tactics deck before the game.',
+  '1. Board in the centre. 2. Place per scenario: Bases or Carriers, Garrisons, Upgrades, Energy, Objectives, Terrain.',
+  '3. Within reach of everyone: extra Upgrades, status tokens, Energy, attack dice, control tokens.',
+  '4. Timeline track near the board. 5. Each player reveals their units (miniature, card, Timeline token).',
+  '6. Place each Timeline token on the space equal to its starting TL; stack tokens on the same space in the order you like (top acts first).',
+  '7. The player with the lowest starting TL goes first. If players tie, each rolls an attack die and the higher roll goes first.',
+  '8. Resolve Setup abilities in activation order.',
+  'Units start in Reserve, not on the board. Each player draws 3 Tactics cards.']}},
+{id:'timeline',
+ fr:{t:'La Timeline (TL)',b:[
+  'La piste compte 10 cases, une par round de la phase. Chaque unité a un jeton ; la piste a deux côtés, un par joueur.',
+  'On résout les cases dans l\'ordre : toutes les unités de la case 1 s\'activent avant la case 2. Une case vide est sautée.',
+  'Plusieurs unités du même joueur sur une case : celle du dessus de la pile s\'active en premier.',
+  'Plusieurs joueurs sur la même case : ils alternent, celui qui a agi le plus récemment agissant en dernier. Au tout premier tour, dé d\'attaque.',
+  'La plupart des actions ont un coût en TL : on avance le jeton d\'autant de cases, tout de suite après avoir déclaré l\'action, avant de la résoudre.',
+  'Si le coût dépasse la case 10, le jeton va à 10 puis revient à la case 1 et continue. Il agira alors à la phase suivante.',
+  'Plus de 10 TL en une seule activation : l\'unité passe à la phase suivante et n\'agit plus avant elle.',
+  'Un jeton qui arrive sur une case occupée par vos autres unités se place sous la pile.']},
+ en:{t:'The Timeline (TL)',b:[
+  'The track has 10 spaces, one per round of a Phase. Each unit has a token; the track has two sides, one per player.',
+  'Spaces resolve in order: every unit on space 1 activates before space 2. Empty spaces are skipped.',
+  'Several units of the same player on a space: the top of the stack activates first.',
+  'Several players on one space: they alternate, the player who acted most recently going last. On the very first activation, roll an attack die.',
+  'Most actions have a TL cost: move the token forward by that many spaces right after declaring the action, before resolving it.',
+  'If a cost goes past space 10, move to 10, wrap back to space 1 and keep counting. The unit then acts in the next Phase.',
+  'More than 10 TL in a single activation: the unit moves to the next Phase and will not act until then.',
+  'A token landing on a space with your other units goes on the bottom of the stack.']}},
+{id:'phase',
+ fr:{t:'Fin de phase',b:[
+  'La phase se termine quand les unités de la case 10 ont agi, ou quand il ne reste plus aucun jeton dans la phase en cours.',
+  'Fin de la phase 1 : résolvez les objectifs de la phase 1 et marquez les PV, piochez 3 cartes Tactique, commencez la phase 2.',
+  'Fin de la phase 2 : résolvez les objectifs de la phase 2, comparez les PV, désignez le vainqueur.',
+  'Pour jouer plus de 2 phases, ajoutez 3 cartes Tactique au deck par phase supplémentaire (12 cartes pour 3 phases, 15 pour 4).']},
+ en:{t:'Ending a Phase',b:[
+  'The Phase ends once units on round 10 have acted, or when no tokens remain in the current Phase.',
+  'End of Phase 1: resolve Phase 1 scenario Objectives and score VP, draw 3 Tactics cards, begin Phase 2.',
+  'End of Phase 2: resolve Phase 2 Objectives, compare VP totals, find the winner.',
+  'To play beyond 2 Phases, add 3 Tactics cards to your deck per extra Phase (12 cards for 3 Phases, 15 for 4).']}},
+{id:'deploy',
+ fr:{t:'Déploiement',b:[
+  'La première fois que vous activez une unité, déployez-la depuis votre Base ou Porte-vaisseaux avant d\'agir : sur la case de la Base, ou adjacente à la case centrale du Porte-vaisseaux. Elle s\'active immédiatement.',
+  'Une unité déployée ne peut pas finir son déplacement sur une Base : elle doit bouger d\'au moins une case.',
+  'Si toutes les cases de déploiement sont bloquées : choisissez-en une normalement, considérez-la vide et faites une Avance immédiate. S\'il n\'y a aucune case, l\'unité dépense 2 TL pour Recharger et reste en Réserve.',
+  'Une unité vaincue retourne en Réserve et se redéploie à sa prochaine activation. Les unités en Réserve ne peuvent être ni ciblées ni affectées par des statuts.']},
+ en:{t:'Deploying units',b:[
+  'The first time you activate a unit, deploy it from your Base or Carrier before acting: on the Base hex, or adjacent to the middle hex of the Carrier. It activates immediately.',
+  'A deployed unit cannot end its move on a Base: it must move at least one hex.',
+  'If every deployment hex is blocked: choose one as normal, treat it as empty and Advance immediately. If there is nowhere at all, the unit spends 2 TL to Energize and stays in Reserve.',
+  'A defeated unit returns to Reserve and redeploys on its next activation. Units in Reserve cannot be targeted or gain status effects.']}},
+{id:'activation',
+ fr:{t:'Activer une unité',b:[
+  'Au début de l\'activation, les Boucliers désactivés se réactivent. On doit choisir une action principale et on peut faire les autres choses ci-dessous.',
+  'Avance (gratuite) : jusqu\'à 3 cases, plus la Vitesse. Les Améliorations de Vitesse ne comptent que pour l\'Avance.',
+  'Action principale, une seule : Attaque (coût TL de l\'arme), Sprint (2 TL, jusqu\'à 2 cases), Recharge (2 TL, +1 Énergie), Secours (2 TL, +2 PV sur une Garnison alliée adjacente).',
+  'Actions supplémentaires : certaines capacités permettent d\'enchaîner d\'autres actions principales. Une action ramenée à 0 TL compte comme supplémentaire.',
+  'Capacités de Commande : chacune une fois par activation. Carte Tactique : 1 par activation au maximum.',
+  'L\'activation se termine quand vous avez fini. Une unité vaincue pendant son activation la termine immédiatement.']},
+ en:{t:'Activating a unit',b:[
+  'At the start of the activation, deactivated Shields reactivate. You must pick one Primary Action and may do the other things below.',
+  'Advance (free): up to 3 hexes, plus Speed. Speed Upgrades only affect Advance.',
+  'Primary Action, one only: Attack (the weapon\'s TL cost), Dash (2 TL, up to 2 hexes), Energize (2 TL, +1 Energy), Rescue (2 TL, +2 VP on an adjacent allied Garrison).',
+  'Additional actions: some abilities let you chain other Primary Actions. An action reduced to 0 TL counts as additional.',
+  'Command abilities: each once per activation. Tactics card: at most 1 per activation.',
+  'The activation ends when you are done. A unit defeated during its own activation ends it immediately.']}},
+{id:'move',
+ fr:{t:'Mouvement',b:[
+  'On déplace d\'une case à la fois dans n\'importe quelle direction. Tout mouvement est facultatif et peut s\'arrêter avant la distance maximale, mais pas sur la case de départ.',
+  'Interdit de traverser des unités, Garnisons, Porte-vaisseaux ou structures ennemies (Bases). On peut traverser des alliés mais pas finir sur la même case qu\'une autre unité.',
+  'Aucune autre action pendant un déplacement : terminez-le avant d\'agir.',
+  'Engagée (adjacente à un ennemi ou une Garnison de même altitude) : −1 case sur tout déplacement.',
+  'Monter d\'un niveau coûte 1 case de plus par niveau. Descendre est gratuit.',
+  'Saut : si le déplacement commence en hauteur, l\'altitude de départ est conservée pendant le mouvement. On ignore les ennemis plus bas et on ne paie que si on monte plus haut. Pas de saut au niveau du sol.',
+  'Hover : ignore les pénalités de terrain et d\'altitude. Eau et débris : −1 case.',
+  'Ramasser une Amélioration ou de l\'Énergie exige de terminer le déplacement sur sa case.']},
+ en:{t:'Movement',b:[
+  'Move one hex at a time in any direction. All movement is optional and may stop early, but not on the starting hex.',
+  'You cannot move through enemy units, Garrisons, Carriers or structures (Bases). You may pass through allies but not end on another unit.',
+  'No other action during a move: finish it before acting.',
+  'Engaged (adjacent to an enemy unit or Garrison at the same elevation): −1 hex on all movement.',
+  'Climbing costs 1 extra hex per level gained. Going down is free.',
+  'Jumping: when a move starts on elevated terrain, that elevation is kept for the move. Ignore lower enemies and only pay if climbing higher. No jumping from ground level.',
+  'Hover ignores terrain and elevation penalties. Water and debris: −1 hex.',
+  'Collecting an Upgrade or Energy requires ending your move on its hex.']}},
+{id:'attack',
+ fr:{t:'Séquence d\'attaque',b:[
+  '1. Déclarez l\'attaque : cible et arme. 2. Vérifiez la portée et la ligne de vue.',
+  '3. Payez le coût TL. 4. Réponses « Avant le jet d\'attaque ».',
+  '5. Lancez les dés d\'attaque (Force = nombre de d10). 6. Réponses « Après le jet d\'attaque » ; le Désarmement se résout ici, après vos autres capacités.',
+  '7. Résolvez les effets de coup critique. 8. Dégâts = touches − Boucliers actifs adverses ; la Fracture se déclenche ; 0 PV = vaincue.',
+  '9. Réponses « Après les dégâts de combat ».',
+  'Chaque étape se règle avant la suivante. Si les deux joueurs veulent répondre en même temps, l\'attaquant d\'abord.',
+  'Une unité Engagée doit cibler au moins un des ennemis avec lesquels elle est Engagée (une attaque de zone suffit si elle en touche un).']},
+ en:{t:'Attack sequence',b:[
+  '1. Declare the attack: target and weapon. 2. Check range and Line of Sight.',
+  '3. Pay the TL cost. 4. "Before Attack Roll" responses.',
+  '5. Roll attack dice (Strength = number of d10). 6. "After Attack Roll" responses; Disarm resolves here, after your other abilities.',
+  '7. Resolve critical hit effects. 8. Damage = hits − the opponent\'s active Shields; Fracture triggers; 0 HP = defeated.',
+  '9. "After Combat Damage" responses.',
+  'Each step resolves before the next. If both players want to respond at once, the attacker goes first.',
+  'An Engaged unit must target at least one enemy it is Engaged with (an area attack is fine if it includes one).']}},
+{id:'los',
+ fr:{t:'Portée et ligne de vue',b:[
+  'Portée 1 : cibles adjacentes seulement. Portée 2 ou plus : jusqu\'à cette distance, avec ligne de vue. L\'altitude et le terrain n\'affectent pas la portée.',
+  '« À portée X » exige la ligne de vue. « Dans un rayon de X cases » ne l\'exige pas.',
+  'Pas de ligne de vue nécessaire sur un allié ou un ennemi adjacent.',
+  'On trace une ligne du centre de la case de l\'acteur au centre de la case de la cible. Si elle passe exactement entre deux cases, l\'acteur choisit laquelle compter.',
+  'Bloquée par : un terrain plus haut que l\'attaquant et la cible ; un ennemi ou une structure ennemie à la même altitude que les deux.',
+  'Si les altitudes diffèrent : bloquée aussi par un terrain ou un ennemi (hors cible) à l\'altitude de celui qui est le plus haut.',
+  'Les alliés, Garnisons alliées et structures alliées ne bloquent jamais.']},
+ en:{t:'Range and Line of Sight',b:[
+  'Range 1: adjacent targets only. Range 2 or more: up to that distance, with Line of Sight. Elevation and terrain do not change range.',
+  '"Within Range X" requires Line of Sight. "Within X hexes" does not.',
+  'No Line of Sight is needed against adjacent allies or enemies.',
+  'Draw a line from the centre of the acting unit\'s hex to the centre of the target\'s hex. If it passes exactly between two hexes, the acting player picks which one to use.',
+  'Blocked by: terrain higher than both attacker and target; an enemy or enemy structure at the same elevation as both.',
+  'If elevations differ: also blocked by terrain or an enemy (other than the target) at the elevation of whichever unit is higher.',
+  'Allies, allied Garrisons and allied structures never block.']}},
+{id:'aoe',
+ fr:{t:'Attaques de zone (AoE)',b:[
+  'Les armes de zone ont un schéma d\'hexagones et « SP » à la place de la portée. Choisissez comment poser le schéma.',
+  'La cible doit être à portée et en ligne de vue (sauf arme qui l\'ignore), mais les unités et Garnisons ne bloquent pas.',
+  'Tous les ennemis dans le schéma sont ciblés en même temps. Vous ne choisissez pas les cibles et ne pouvez pas en exclure.',
+  'Un seul jet de dés pour toute l\'attaque. Ensuite, les touches se calculent par cible (altitude, eau, etc.) et les dégâts s\'appliquent ensemble.',
+  'Chaque cible touchée déclenche ses propres Réponses.']},
+ en:{t:'Area of effect (AoE)',b:[
+  'AoE weapons show a hex pattern and "SP" instead of a range. Choose how to place the pattern.',
+  'The target must be in range and Line of Sight (unless the weapon ignores it), but units and Garrisons do not block.',
+  'Every enemy in the pattern is targeted at once. You do not choose targets and cannot exclude any.',
+  'One attack roll for the whole attack. Hits are then counted per target (elevation, water, etc.) and damage is dealt together.',
+  'Each target damaged is a separate trigger for Responses.']}},
+{id:'hits',
+ fr:{t:'Touches, Précision et critiques',b:[
+  'Un d10 donne une touche à 4 ou plus. Un 1 rate toujours.',
+  'Une Précision +1 ajoute 1 à chaque dé, −1 le retire, sauf pour les 1, 9 et 10.',
+  'Un 9 ou un 10 est un coup critique : il touche quel que soit le modificateur. La Précision ne transforme pas un dé en critique.',
+  'Chaque arme a un effet de critique, activé une seule fois par attaque même avec plusieurs critiques, sauf indication contraire.',
+  'Cible plus haute : −1 Précision. Cible plus basse : +1 Précision.',
+  'Eau et débris : −1 si l\'attaquant y est, −1 si la cible y est (−2 si les deux).',
+  'Particules Minovsky : −2 si l\'attaquant ou la cible y est, sur une cible non adjacente ; non cumulatif.']},
+ en:{t:'Hits, Accuracy and criticals',b:[
+  'A d10 scores a hit on 4 or more. A 1 is always a miss.',
+  '+1 Accuracy adds 1 to each die, −1 subtracts 1, except for rolls of 1, 9 and 10.',
+  'A 9 or 10 is a critical hit: it hits whatever the modifiers. Accuracy never turns a die into a critical.',
+  'Every weapon has a critical hit effect, triggered once per attack however many criticals are rolled, unless stated otherwise.',
+  'Target higher: −1 Accuracy. Target lower: +1 Accuracy.',
+  'Water and debris: −1 if the attacker is in it, −1 if the target is in it (−2 if both).',
+  'Minovsky Particles: −2 if the attacker or the target is inside, against a non-adjacent target; not cumulative.']}},
+{id:'damage',
+ fr:{t:'Dégâts, Boucliers et défaite',b:[
+  'Chaque touche inflige 1 dégât. Chaque Bouclier actif en empêche 1 puis se désactive (face cachée).',
+  'Les Boucliers s\'appliquent après tous les autres effets ; les réductions de dégâts s\'appliquent avant eux.',
+  'Les effets de critique s\'appliquent même si les Boucliers absorbent tout.',
+  '« Dégâts +X » augmente les dégâts de combat de X.',
+  'À 0 PV : l\'unité est vaincue. L\'adversaire marque ses PV. Retirez-la du plateau, renvoyez-la en Réserve, avancez son jeton de 2 cases sur la Timeline.',
+  'Rendez-lui ses PV max et retirez ses statuts. Énergie et Améliorations sont conservées. Elle se redéploie à sa prochaine activation.',
+  'Un Porte-vaisseaux vaincu est désactivé : il reste sur le plateau, son jeton quitte la Timeline, il ne dispute plus d\'objectifs.']},
+ en:{t:'Damage, Shields and defeat',b:[
+  'Each hit deals 1 damage. Each active Shield prevents 1, then deactivates (face down).',
+  'Shields apply after all other effects; damage reductions apply before them.',
+  'Critical hit effects apply even if Shields absorb all the damage.',
+  '"Damage+X" increases combat damage by X.',
+  'At 0 HP the unit is defeated. The opponent scores its VP. Remove it, return it to Reserve, move its token 2 spaces forward on the Timeline.',
+  'Reset its HP and remove its status effects. Energy and Upgrades stay. It redeploys on its next activation.',
+  'A defeated Carrier is disabled: it stays on the board, its token leaves the Timeline, and it no longer contests Objectives.']}},
+{id:'abilities',
+ fr:{t:'Cartes et capacités',b:[
+  'Commande : uniquement pendant l\'activation de l\'unité, une fois par activation, pas au milieu d\'une autre action. Une carte nommant une unité exige que cette unité s\'active.',
+  'Réponse : utilisable dès que sa condition est remplie, quel que soit le joueur actif. Résolue entièrement avant de reprendre. Le joueur actif décide le premier.',
+  'Attaque : remplace l\'attaque principale de l\'activation (sauf mention contraire) et a souvent un coût TL.',
+  'Continue (Ongoing) : active dès le début, sans Énergie.',
+  'Mise en place (Setup) : résolue avant la partie.',
+  'Énergie : dépensée par l\'unité qui active la capacité, pendant l\'activation où on la gagne ou plus tard.',
+  'Ce qui dit « ne peut pas » l\'emporte sur ce qui dit « peut ». Les effets multiples se résolvent dans l\'ordre imprimé.']},
+ en:{t:'Cards and abilities',b:[
+  'Command: only while activating the unit, once per activation, not in the middle of another action. A card naming a unit requires that unit to be activating.',
+  'Response: usable as soon as its condition is met, whichever player is active. Fully resolved before resuming. The active player decides first.',
+  'Attack: replaces the activation\'s Primary Attack (unless stated otherwise) and often has a TL cost.',
+  'Ongoing: active from the start, no Energy.',
+  'Setup: resolved before the game.',
+  'Energy: spent by the unit activating the ability, in the activation it is gained or later.',
+  '"Cannot" beats "can". Multiple effects resolve in printed order.']}},
+{id:'status',
+ fr:{t:'Statuts',b:[
+  'Une unité ne peut avoir qu\'un exemplaire de chaque statut. Ils n\'affectent que les unités et Porte-vaisseaux (pas les Garnisons ni les RWS).',
+  'Désarmement : à sa prochaine attaque, l\'unité relance tous ses dés qui touchent et ne déclenche aucun effet de critique. Se résout après vos autres capacités « Après le jet ». Retiré après le relancer.',
+  'Fracture : la prochaine fois que l\'unité subirait 3 dégâts de combat ou plus d\'une attaque, elle subit 3 dégâts de plus. Les dégâts directs de capacités ne la déclenchent pas.',
+  'Ralentissement : à sa prochaine Avance, l\'unité ne bouge pas. Sprint et autres mouvements ne sont pas touchés.']},
+ en:{t:'Status effects',b:[
+  'A unit can only have one of each status. They affect units and Carriers only (not Garrisons or RWS).',
+  'Disarm: on its next attack the unit re-rolls every die that hit and triggers no critical hit effects. Resolves after your other "After Attack Roll" abilities. Removed after the re-roll.',
+  'Fracture: the next time the unit would take 3 or more combat damage from a single attack, it takes 3 additional damage. Direct damage from abilities does not trigger it.',
+  'Slow: on its next Advance the unit does not move. Dash and other movement are unaffected.']}},
+{id:'pushpull',
+ fr:{t:'Poussée et Traction',b:[
+  'Poussée (Push) : l\'ennemi s\'éloigne de la source, jusqu\'au nombre de cases indiqué. Traction (Pull) : il s\'en rapproche.',
+  'Les pénalités d\'Engagement et de terrain ne s\'appliquent pas. Chaque case doit être plus loin (ou plus proche) que la précédente.',
+  'On ne peut pas pousser ou tirer vers une altitude plus haute : l\'unité heurte le terrain.',
+  'Collision avec un terrain, une structure, une unité ou une Garnison : le mouvement s\'arrête et tous les participants subissent 2 dégâts (les Boucliers les empêchent).',
+  'Un ennemi déjà adjacent et de même altitude ne peut pas être tiré. Si la Traction a plusieurs chemins aussi courts, on choisit.',
+  'Les Porte-vaisseaux ne peuvent être ni poussés ni tirés.']},
+ en:{t:'Push and Pull',b:[
+  'Push: the enemy moves away from the source up to the stated number of hexes. Pull: it moves toward the source.',
+  'Engagement and terrain penalties do not apply. Each hex must be further away (or closer) than the last.',
+  'You cannot Push or Pull onto higher ground: the unit collides with the terrain.',
+  'Colliding with terrain, a structure, a unit or a Garrison stops the move and everyone involved takes 2 damage (Shields prevent it).',
+  'An enemy already adjacent at the same elevation cannot be Pulled. If several equally short paths exist, you choose.',
+  'Carriers cannot be Pushed or Pulled.']}},
+{id:'upgrades',
+ fr:{t:'Améliorations et Énergie',b:[
+  'Une unité qui termine un déplacement sur une Amélioration ou de l\'Énergie la prend immédiatement. Traverser la case ne suffit pas.',
+  'Bouclier : empêche 1 dégât puis se retourne. Il se réactive au début de la prochaine activation de l\'unité.',
+  'Vitesse : +1 case par Amélioration, pour l\'Avance seulement.',
+  'Force : +1 dé d\'attaque par Amélioration, pour tout le reste de la partie.',
+  'Redistribuer ou prendre : on transfère les jetons entre les cartes. Les Boucliers sont réactivés.']},
+ en:{t:'Upgrades and Energy',b:[
+  'A unit ending a move on an Upgrade or Energy collects it immediately. Moving through is not enough.',
+  'Shield: prevents 1 damage then flips face down. It reactivates at the start of the unit\'s next activation.',
+  'Speed: +1 hex per Upgrade, for Advance only.',
+  'Strength: +1 attack die per Upgrade for the rest of the game.',
+  'Redistributing or taking: transfer tokens between cards. Shields are reactivated.']}},
+{id:'terrain',
+ fr:{t:'Altitude et terrains spéciaux',b:[
+  'Le niveau le plus bas du plateau est le sol. Chaque niveau au-dessus est numéroté (hauteur 1, 2…).',
+  'Eau : −1 case au déplacement ; −1 Précision si l\'attaquant y est, −1 si la cible y est.',
+  'Terrain infranchissable : pas de traversée sans Hover, personne ne peut y finir son déplacement.',
+  'Champ de débris : mêmes effets que l\'eau.',
+  'Particules Minovsky : −2 Précision contre une cible non adjacente si l\'un des deux y est ; pas cumulatif.',
+  'Certains scénarios laissent les joueurs placer le terrain d\'un commun accord.']},
+ en:{t:'Elevation and special terrain',b:[
+  'The lowest level of the map is ground level. Each higher level is numbered (height 1, 2…).',
+  'Water: −1 hex on movement; −1 Accuracy if the attacker is in it, −1 if the target is in it.',
+  'Impassable terrain: no moving through without Hover, nobody may end a move there.',
+  'Debris field: same effects as water.',
+  'Minovsky Particles: −2 Accuracy against a non-adjacent target if either is inside; not cumulative.',
+  'Some scenarios let players place terrain by agreement.']}},
+{id:'build',
+ fr:{t:'Escouade et deck',b:[
+  'Escouade de 3 ou 5 unités selon le scénario, parfois avec un Porte-vaisseaux. Aucune restriction de faction.',
+  'Une seule copie par numéro de carte, sauf unités Mass Produced (il faut alors bien distinguer figurines et jetons Timeline).',
+  'Deck de exactement 9 cartes Tactique, une copie de chaque carte maximum.',
+  'Une carte Signature n\'entre dans le deck que si l\'escouade contient l\'unité avec ce titre.',
+  'Une carte avec une faction ou un trait n\'entre que si l\'escouade contient au moins une unité avec ce trait.',
+  'On pioche 3 cartes au départ et 3 à la fin de la phase 1. Un deck vide ne permet plus de piocher.']},
+ en:{t:'Squad and deck building',b:[
+  'A squad of 3 or 5 units depending on the scenario, sometimes with a Carrier. No faction restriction.',
+  'One copy per card number, except Mass Produced units (make miniatures and Timeline tokens clearly distinguishable).',
+  'A deck of exactly 9 Tactics cards, one copy of each card at most.',
+  'A Signature card can only be included if the squad has the unit with that title.',
+  'A card with a faction or trait can only be included if the squad has at least one unit with that trait.',
+  'Draw 3 at the start and 3 at the end of Phase 1. An empty deck cannot draw.']}},
+{id:'components',
+ fr:{t:'Composants et RWS',b:[
+  'Les composants d\'une unité commencent dans sa réserve (supply), sans dépasser le nombre indiqué sur sa carte. Détruits, ils y retournent.',
+  'RWS : se déploient ou se repositionnent sur une case vide, ne bloquent ni ligne de vue ni mouvement, ne comptent pas comme unités, peuvent être attaqués, poussés ou tirés, et ne subissent pas de statuts.',
+  'Renforts : jetons posés sur le plateau et sur la Timeline. Ce sont des unités ; vaincus, ils ne se redéploient pas.']},
+ en:{t:'Components and RWS',b:[
+  'A unit\'s components start in its supply, never exceeding the number on its card. When destroyed they return to it.',
+  'RWS: deploy or reposition to an empty hex, block neither Line of Sight nor movement, are not units, can be attacked, Pushed or Pulled, and cannot gain status effects.',
+  'Reinforcements: tokens placed on the board and on the Timeline. They are units; when defeated they do not redeploy.']}},
+{id:'carriers',
+ fr:{t:'Porte-vaisseaux',b:[
+  'S\'activent comme des unités, avec des exceptions. Ils remplacent les Bases : on y déploie ses unités à côté de la case centrale, quelle que soit l\'altitude.',
+  'Déplacement : on choisit de partir de la case avant ou arrière, on avance d\'une case, puis la case centrale prend la place libérée, et ainsi de suite.',
+  'Ils ignorent unités, Garnisons et pénalités de terrain, mais ne finissent pas sur une case occupée et doivent finir de niveau.',
+  'Ils ne provoquent pas d\'Engagement et ne peuvent pas être Engagés ni déplacés par des effets.',
+  'Portée et ligne de vue se mesurent depuis la case avant. Défaits, ils sont désactivés (voir Dégâts).',
+  'En terrain spécial, l\'effet ne s\'applique qu\'aux parties du Porte-vaisseaux situées dedans.']},
+ en:{t:'Carriers',b:[
+  'Activate like units, with exceptions. They replace Bases: deploy units next to the middle hex, whatever the elevation.',
+  'Movement: pick the front or back hex to start, move it one hex, then the middle hex takes the vacated hex, and so on.',
+  'They ignore units, Garrisons and terrain penalties, but cannot end on an occupied hex and must end level.',
+  'They do not cause Engagement and cannot be Engaged or moved by effects.',
+  'Range and Line of Sight are measured from the front hex. When defeated they are disabled (see Damage).',
+  'In special terrain, the effect applies only to the parts of the Carrier inside it.']}},
+{id:'goals',
+ fr:{t:'Scénario, Garnisons et objectifs',b:[
+  'Les objectifs de scénario rapportent des PV, certains à une phase précise, d\'autres à la fin de chaque phase.',
+  'Garnison ennemie vaincue : +2 PV (1 PV de vie, attaquable comme une unité). Garnison alliée secourue : +2 PV (2 TL, unité adjacente).',
+  'Les Garnisons ennemies bloquent mouvement et ligne de vue et provoquent l\'Engagement, mais ne comptent pas comme unités ennemies pour les effets.',
+  'Disputer un objectif : terminer son activation sur ou à côté. Si vos unités y sont plus nombreuses que les ennemies, vous réussissez : un objectif neutre est capturé, un objectif ennemi redevient neutre.',
+  'Le contrôle reste acquis jusqu\'à ce que l\'adversaire gagne une dispute. Les mouvements hors activation ne disputent pas.',
+  'Capturer (effet) : prise de contrôle immédiate. Ramasser : terminer son déplacement dessus ; lâché si Sprint, Poussée, Traction ou défaite.']},
+ en:{t:'Scenarios, Garrisons and Objectives',b:[
+  'Scenario goals award VP, some in a specific Phase, others at the end of every Phase.',
+  'Enemy Garrison defeated: +2 VP (1 HP, attacked like a unit). Allied Garrison Rescued: +2 VP (2 TL, adjacent unit).',
+  'Enemy Garrisons block movement and Line of Sight and cause Engagement, but are not enemy units for effects.',
+  'Contesting an Objective: end your activation on or adjacent to it. If your units there outnumber enemy units, you succeed: a neutral Objective is captured, an enemy one returns to neutral.',
+  'Control stays until the opponent wins a contest. Movement outside your activation does not contest.',
+  'Capture (effect): immediate control. Picking up: end a move on it; dropped on Dash, Push, Pull or defeat.']}}
+];
+
+const GLOSS=[
+ ['Ability','Capacité','Texte imprimé sur une carte d\'unité ou de Tactique. Certaines coûtent de l\'Énergie. Elle exige la ligne de vue sauf indication contraire.','Text printed on a unit or Tactics card. Some cost Energy. It requires Line of Sight unless stated otherwise.'],
+ ['Accuracy','Précision','Ajoute ou retire une valeur à chaque dé d\'attaque, sauf pour 1, 9 et 10.','Adds to or subtracts from each attack die, except rolls of 1, 9 and 10.'],
+ ['Advance','Avance','Déplacement de base : jusqu\'à 3 cases plus la Vitesse, sans coût TL.','Basic move: up to 3 hexes plus Speed, no TL cost.'],
+ ['Ally','Allié','Unité, Garnison, RWS ou structure qui vous appartient.','A unit, Garrison, RWS or structure that belongs to you.'],
+ ['Area of Effect (AoE)','Zone d\'effet','Arme ou capacité qui touche tous les ennemis d\'un schéma d\'hexagones.','Weapon or ability affecting every enemy in a hex pattern.'],
+ ['Attack Dice','Dés d\'attaque','Des d10, en nombre égal à la Force de l\'arme plus ou moins les modificateurs.','d10s, as many as the weapon\'s Strength plus or minus modifiers.'],
+ ['Away','S\'éloigner','Chaque case doit être plus éloignée de la source que la précédente.','Each hex must be further from the source than the previous one.'],
+ ['Battlefield','Champ de bataille','Toutes les cases du plateau. Les unités en Réserve n\'y sont pas.','All hexes on the board. Units in Reserve are not on it.'],
+ ['Capture','Capturer','Prendre le contrôle d\'un objectif immédiatement, sans dispute.','Take control of an Objective immediately, ignoring contests.'],
+ ['Carrier','Porte-vaisseaux','Grande unité de plusieurs cases (White Base, Musai…). Voir la section dédiée.','Large multi-hex unit (White Base, Musai…). See its section.'],
+ ['Challenge','Défi','Permet d\'échanger sa place avec un allié pour devenir la cible d\'une attaque.','Lets a unit swap with an ally to become the attack\'s target.'],
+ ['Collision Damage','Dégâts de collision','2 dégâts à chaque participant quand Poussée ou Traction cause un choc. Les Boucliers les empêchent.','2 damage to everyone involved when Push or Pull causes a collision. Shields prevent it.'],
+ ['Combat Damage','Dégâts de combat','Dégâts des touches, des effets de critique qui modifient les dégâts, et de la Fracture.','Damage from hits, from critical effects that modify damage, and from Fracture.'],
+ ['Command','Commande','Capacité utilisable seulement pendant l\'activation de l\'unité.','Ability usable only while activating the unit.'],
+ ['Contest','Disputer','Terminer son activation sur ou à côté d\'un objectif pour tenter d\'en prendre le contrôle.','End your activation on or next to an Objective to try to take control.'],
+ ['Critical Hit','Coup critique','9 ou 10 sur un dé. Touche toujours et déclenche l\'effet de critique de l\'arme.','A 9 or 10 on a die. Always hits and triggers the weapon\'s critical effect.'],
+ ['Dash','Sprint','Action principale : 2 TL pour bouger jusqu\'à 2 cases.','Primary Action: 2 TL to move up to 2 hexes.'],
+ ['Deactivated','Désactivé','Un Bouclier qui a absorbé des dégâts. Il se réactive à la prochaine activation de l\'unité.','A Shield that has prevented damage. It reactivates at the unit\'s next activation.'],
+ ['Defending','Défenseur','Unité ciblée par une attaque ennemie.','A unit targeted by an enemy attack.'],
+ ['Deploy / Redeploy','Déployer / Redéployer','Mettre une unité sur le plateau depuis une Base ou un Porte-vaisseaux, à la première activation ou après une défaite.','Place a unit on the board from a Base or Carrier, on first activation or after defeat.'],
+ ['Disarm','Désarmement','Statut : relance des touches et pas d\'effet de critique à la prochaine attaque.','Status: re-roll hits and no critical effects on the next attack.'],
+ ['Empty Hex','Case vide','Aucune unité, Garnison, RWS, structure ou jeton.','No units, Garrisons, RWS, structures or tokens.'],
+ ['Enemy','Ennemi','Unité, Garnison, RWS ou structure de l\'adversaire.','A unit, Garrison, RWS or structure of the opponent.'],
+ ['Energize','Recharge','Action principale : 2 TL pour gagner 1 Énergie.','Primary Action: 2 TL to gain 1 Energy.'],
+ ['Engaged','Engagée','Adjacente à un ennemi ou une Garnison de même altitude : −1 case de mouvement, doit cibler un ennemi Engagé.','Adjacent to an enemy or Garrison at the same elevation: −1 hex movement, must target an Engaged enemy.'],
+ ['Fracture','Fracture','Statut : +3 dégâts quand l\'unité subirait 3 dégâts de combat ou plus d\'une attaque.','Status: +3 damage when the unit would take 3 or more combat damage from an attack.'],
+ ['Fueled','Ravitaillé','Gagne 1 Énergie à chaque déploiement.','Gains 1 Energy each time it deploys.'],
+ ['Garrison','Garnison','Forces auxiliaires sur la carte. 1 PV de vie. Secourir ou vaincre : +2 PV.','Auxiliary forces on the map. 1 HP. Rescue or defeat: +2 VP.'],
+ ['Hit Points (HP)','Points de vie (PV de structure)','Dégâts encaissés avant d\'être vaincu. Noté HP sur les cartes. À ne pas confondre avec les points de victoire (VP).','Damage absorbed before defeat. Printed HP on cards. Not to be confused with victory points (VP).'],
+ ['Hover','Vol stationnaire','Ignore les pénalités de terrain et d\'altitude, traverse le terrain infranchissable.','Ignores terrain and elevation penalties, crosses impassable terrain.'],
+ ['Impassable Terrain','Terrain infranchissable','Aucune unité ne peut le traverser sans Hover ni y finir son déplacement.','No unit may cross it without Hover or end a move on it.'],
+ ['Jump','Saut','Depuis un terrain en hauteur, on garde son altitude de départ pendant le mouvement.','From elevated terrain, keep your starting elevation during the move.'],
+ ['Line of Sight','Ligne de vue','Ligne du centre de la case de l\'acteur à celui de la cible, bloquée par terrain ou ennemis à certaines altitudes.','Line from the acting hex centre to the target hex centre, blocked by terrain or enemies at certain elevations.'],
+ ['Mass Produced','Production de masse','Permet plusieurs copies de la même unité dans l\'escouade.','Allows several copies of the same unit in a squad.'],
+ ['Move','Déplacer','Mouvement accordé par une capacité. Il subit terrain et ennemis comme les autres.','Movement granted by an ability. Affected by terrain and enemies like any other.'],
+ ['Non-Combat Damage','Dégâts hors combat','Tout dégât qui ne vient pas d\'une attaque, dont les collisions.','All damage not from an attack, including collisions.'],
+ ['Ongoing','Continue','Capacité active du début à la fin de la partie.','Ability active from the start of the game to the end.'],
+ ['Phase','Phase','Une partie compte 2 phases de 10 rounds.','A game has 2 Phases of 10 rounds.'],
+ ['Pull','Traction','Déplacer un ennemi vers la source, sans pénalité de mouvement.','Move an enemy toward the source, ignoring movement penalties.'],
+ ['Push','Poussée','Déplacer un ennemi loin de la source, sans pénalité de mouvement.','Move an enemy away from the source, ignoring movement penalties.'],
+ ['Range','Portée','Distance maximale d\'une arme. Portée 1 = adjacent.','Maximum distance of a weapon. Range 1 = adjacent.'],
+ ['Reinforcements','Renforts','Unités déployées en cours de partie, avec jeton sur le plateau et la Timeline.','Units deployed mid-game, with a token on the board and the Timeline.'],
+ ['Remote Weapon System (RWS)','Système d\'arme déporté (RWS)','Arme déployée sur une case vide. Pas une unité.','A weapon deployed to an empty hex. Not a unit.'],
+ ['Repair','Réparer','Rend des PV jusqu\'au maximum.','Gain HP up to the maximum.'],
+ ['Reposition','Repositionner','Retirer un objet de sa case et le poser sur une autre. Compte comme mouvement.','Remove an object from its hex and place it elsewhere. Counts as movement.'],
+ ['Rescue','Secours','Action principale : 2 TL, une Garnison alliée adjacente est retirée, +2 PV.','Primary Action: 2 TL, an adjacent allied Garrison is removed, +2 VP.'],
+ ['Reserve','Réserve','Où sont les unités avant leur déploiement et après une défaite. Ni ciblables ni affectées par des statuts.','Where units wait before deploying and after defeat. Cannot be targeted or gain statuses.'],
+ ['Response','Réponse','Capacité déclenchée par une situation précise.','Ability triggered by a specific situation.'],
+ ['Round','Round','Résolution d\'une case de la Timeline. 10 par phase.','Resolving one Timeline space. 10 per Phase.'],
+ ['Setup','Mise en place','Capacité résolue avant le début de la partie.','Ability resolved before the game begins.'],
+ ['Shield','Bouclier','Empêche 1 dégât puis se désactive jusqu\'à la prochaine activation de l\'unité.','Prevents 1 damage, then deactivates until the unit\'s next activation.'],
+ ['Signature Tactics Card','Carte Tactique Signature','Carte jouable uniquement par l\'unité au titre correspondant.','Card only the unit with the matching title can use.'],
+ ['Slow','Ralentissement','Statut : la prochaine Avance ne bouge pas.','Status: the next Advance does not move.'],
+ ['Speed','Vitesse','+1 case à l\'Avance par point.','+1 hex on Advance per point.'],
+ ['Squad','Escouade','Toutes les unités et Porte-vaisseaux d\'un joueur.','All of a player\'s units and Carriers.'],
+ ['Strength','Force','Nombre de d10 d\'attaque d\'une arme.','Number of attack d10s of a weapon.'],
+ ['Structure','Structure','Base ou autre élément du scénario. Les structures ennemies bloquent mouvement et ligne de vue.','Base or other scenario element. Enemy structures block movement and Line of Sight.'],
+ ['Swap','Échange','Deux figurines échangent leurs places. Compte comme mouvement.','Two miniatures exchange positions. Counts as movement.'],
+ ['Terrain Movement Penalties','Pénalités de terrain','Pénalités d\'altitude et de terrains spéciaux comme l\'eau.','Elevation penalties and special terrain such as water.'],
+ ['Timeline Penalty','Pénalité de Timeline','+2 cases quand une unité est vaincue : temps de réparation.','+2 spaces when a unit is defeated: repair time.'],
+ ['Toward','Vers','Chaque case doit être plus proche de la cible que la précédente.','Each hex must be closer to the target than the previous one.'],
+ ['Trait','Trait','Pilote, faction ou particularité. Détermine les cartes Tactique admises.','Pilot, faction or characteristic. Determines which Tactics cards are allowed.'],
+ ['Unit','Unité','Mobile Suit, Porte-vaisseaux ou autre combattant avec une carte d\'unité. Pas une Garnison ni un RWS.','A Mobile Suit, Carrier or other combatant with a unit card. Not a Garrison or RWS.'],
+ ['Upgrade','Amélioration','Jeton Bouclier, Vitesse ou Force posé sur une carte d\'unité.','Shield, Speed or Strength token placed on a unit card.'],
+ ['Victory Points (VP)','Points de victoire (PV)','Marqués en battant des unités et Garnisons, en secourant, en contrôlant des objectifs.','Scored by defeating units and Garrisons, Rescuing, controlling Objectives.']
+];
+
+const PRESETS=[
+ /* Fiches lues sur la liste officielle (images des cartes) : PV, VP, TL, armes (TL / portée / Force) et noms de capacités. Les textes d'effets ne figurent pas sur ces images. Capacités : [nom, type c=Commande r=Réponse o=Continue s=Mise en place, Énergie] */
+ {id:'st01-u01',set:'ST01-U01',name:'Gundam',model:'RX-78-2',title:'Legendary Hero',hp:15,vp:8,start:2,abil:[['Frenzied Charge','c',1],['Escape from Side 7','r',0]],weapons:[
+   {name:'Vulcan Guns',tl:2,range:'2',str:3,crit:{fr:'Critique : lancez 2 dés supplémentaires.',en:'Critical: roll 2 additional dice.'}},
+   {name:'Beam Saber',tl:3,range:'1',str:6,eff:{fr:'Après le jet : désactive tous les Boucliers de la cible.',en:'After Attack Roll: deactivate all Shield Upgrades on the target.'},crit:{fr:'Critique : Dégâts +2.',en:'Critical: Damage +2.'},critDmg:2}]},
+ {id:'st01-u02',set:'ST01-U02',name:'Wing Gundam Zero (EW)',model:'XXXG-00W0',title:'Wing of Destruction',hp:12,vp:9,start:3,critAt:7,abil:[['Full Power','c',1],['Zero System','o',0],['Hover','o',0]],weapons:[
+   {name:'Beam Saber',tl:2,range:'1',str:4,crit:{fr:'Critique : après les dégâts, l\'unité bouge de 2 en ignorant l\'Engagement.',en:'Critical: after combat damage this unit moves 2, ignoring Engagement.'}},
+   {name:'Twin Buster Rifle',tl:4,range:'SP',str:6,eff:{fr:'Zone d\'effet (voir le schéma de la carte).',en:'Area of effect (see the card diagram).'},crit:{fr:'Critique : Dégâts +1 par critique obtenu, maximum +4.',en:'Critical: Damage +1 for each Critical rolled, max +4.'}}]},
+ {id:'st01-u03',set:'ST01-U03',name:'Gundam Barbatos Lupus Rex',model:'ASW-G-08',title:'Final Stand',hp:17,vp:10,start:2,abil:[['Annihilate','c',1],['Alaya-Vijnana Exertion','c',0],['Fight to the End','o',0]],weapons:[
+   {name:'Rex Claws',tl:2,range:'1',str:3},{name:'Tail Blade',tl:4,range:'2',str:7}]},
+ {id:'st01-u04',set:'ST01-U04',name:'Char\'s Zaku II',model:'MS-06S',title:'Fast Encounter',hp:12,vp:7,start:2,abil:[['Checkmate','c',1],['Three-Times Faster','o',0],['Char Kick','r',0]],weapons:[
+   {name:'Heat Hawk',tl:2,range:'1',str:4},{name:'Zaku Bazooka',tl:4,range:'4',str:7}]},
+ {id:'st01-u05',set:'ST01-U05',name:'Gundam Epyon (EW)',model:'OZ-13MS',title:'Crimson Cataclysm',hp:15,vp:9,start:3,abil:[['No Escape','c',1],['Exploit Weakness','o',0],['Hover','o',0]],weapons:[
+   {name:'Heat Rod',tl:2,range:'2',str:3},{name:'Beam Sword',tl:3,range:'1',str:7}]},
+ {id:'st01-u06',set:'ST01-U06',name:'Gundam Vidar',model:'ASW-G-XX',title:'Cold Justice',hp:13,vp:7,start:1,abil:[['Hunter\'s Edge','c',1],['Alaya-Vijnana Type E System','c',0]],weapons:[
+   {name:'Handguns',tl:3,range:'2',str:3},{name:'Burst Saber',tl:4,range:'1',str:8}]},
+ {id:'pa01-u01',set:'PA01-U01',name:'Gundam',model:'RX-78-2',title:'Elite Mobile Suit',hp:17,vp:10,start:1,abil:[['Toss Away','r',1],['Inspiring Presence','r',0],['Challenge','r',0]],weapons:[
+   {name:'Beam Saber',tl:2,range:'1',str:3},{name:'Beam Rifle',tl:3,range:'3',str:5}]},
+ {id:'pa01-u02',set:'PA01-U02',name:'Guncannon',model:'RX-77-2',title:'In Position',hp:12,vp:7,start:2,abil:[['Stunning Shot','r',1],['Firing Line','o',0]],weapons:[
+   {name:'240mm Low-Recoil Cannon',tl:2,range:'SP',str:3,eff:{fr:'Zone d\'effet (voir le schéma de la carte).',en:'Area of effect (see the card diagram).'}},{name:'Beam Rifle',tl:4,range:'4',str:7}]},
+ {id:'pa01-u03',set:'PA01-U03',name:'Guntank',model:'RX-75',title:'Battlefield Bombarder',hp:13,vp:7,start:2,abil:[['Coordinated Payload','r',1],['Crowd Control','r',0]],weapons:[
+   {name:'120mm Low-Recoil Cannons',tl:2,range:'4',str:2},{name:'Quadruple Bop Missile',tl:3,range:'SP',str:5,eff:{fr:'Zone d\'effet (voir le schéma de la carte).',en:'Area of effect (see the card diagram).'}}]},
+ {id:'ex01-u01',set:'EX01-U01',name:'Unicorn Gundam (Destroy Mode)',model:'RX-0',title:'Laplace\'s Guardian',hp:14,vp:10,start:3,abil:[['Psycho-Frame Synchrony','r',1],['Newtype Destroyer','o',0]],weapons:[
+   {name:'Beam Saber',tl:2,range:'1',str:4},{name:'Beam Magnum',tl:4,range:'4',str:8}]},
+ {id:'ex01-u02',set:'EX01-U02',name:'Torohachi',model:'TOLRO-800',title:'Petite Mobile Suit',hp:8,vp:5,start:1,abil:[['Rescue Maneuver','c',1],['Supply','r',0],['Material Transfer','c',0]],weapons:[
+   {name:'Armored Frame',tl:2,range:'1',str:3}]},
+ {id:'ex01-u03',set:'EX01-U03',name:'Delta Plus',model:'MSN-001A1',title:'Rapid Response',hp:11,vp:7,start:2,abil:[['Blitzing Slash','r',1],['Jet Through','o',0]],weapons:[
+   {name:'Twin-Barreled Grenade Launcher',tl:2,range:'3',str:3},{name:'Beam Rifle',tl:4,range:'5',str:6}]},
+ {id:'ex02-u01',set:'EX02-U01',name:'Gundam Aerial',model:'XVX-016',title:'Protective Heroine',hp:16,vp:10,start:1,abil:[['Permet Burst','r',1],['BIT Stave Direct','c',0],['Challenge','r',0]],weapons:[
+   {name:'Beam Sabers',tl:2,range:'1',str:3},{name:'Beam Rifle',tl:4,range:'4',str:6}]},
+ {id:'ex02-u02',set:'EX02-U02',name:'Gundam Pharact',model:'FP/A-77',title:'Silent Hunter',hp:12,vp:7,start:2,abil:[['Lockdown','r',1],['Corex Direct','c',0],['Hover','o',0]],weapons:[
+   {name:'Beak Foot',tl:2,range:'3',str:3},{name:'Beam Arquebus',tl:4,range:'5',str:6}]},
+ {id:'ex02-u03',set:'EX02-U03',name:'Darilbalde',model:'MD-0064',title:'Frontline Duelist',hp:13,vp:8,start:3,abil:[['Sundering Strike','c',1],['(B Type Direct)','c',0]],weapons:[
+   {name:'Shackle Claw',tl:2,range:'2',str:4},{name:'Beam Saber',tl:3,range:'1',str:7}]},
+ /* Fiches vues dans le livre de règles (autres éditions que celles de la liste) */
+ {id:'book-guntank',set:'livre',name:'Guntank',model:'RX-75',title:'Long-Range Support',hp:11,vp:7,start:3,abil:[['Long Range Assault','c',1],['Entrenched','o',0],['Fueled','r',0]],weapons:[
+   {name:'Quadruple Bop Missile',tl:2,range:'SP',str:3,eff:{fr:'Zone d\'effet (voir le schéma de la carte).',en:'Area of effect (see the card diagram).'},crit:{fr:'Voir la carte.',en:'See the card.'}},
+   {name:'120mm Low-Recoil Cannons',tl:4,range:'4',str:7,crit:{fr:'Critique : Désarmement de la cible.',en:'Critical: Disarm the target.'},critStatus:'disarm'}]},
+ {id:'book-buster',set:'livre',name:'Buster Gundam',model:'GAT-X103',title:'Longshot',hp:12,vp:7,start:3,abil:[['Recombine','c',1],['Long-Range Sensors','o',0],['Locked and Loaded','s',0]],weapons:[
+   {name:'94mm High-Energy Beam Rifle',tl:2,range:'3',str:3,crit:{fr:'Critique : Désarmement de la cible.',en:'Critical: Disarm the target.'},critStatus:'disarm'}]},
+ {id:'book-oggo',set:'livre',name:'Oggo',model:'MP-02A',title:'Last Reserves',hp:8,vp:5,start:2,abil:[['Saturated Fire','c',1],['Artillery Support','r',0],['Hover','o',0]],weapons:[
+   {name:'120mm Machine Gun',tl:2,range:'3',str:3,crit:{fr:'Critique : Désarmement de la cible.',en:'Critical: Disarm the target.'},critStatus:'disarm'}]}
+];
+
+/* Textes d'effets lus sur les fiches complètes du site officiel (modales). Lecture non officielle : à vérifier sur votre carte. */
+(function(){
+const T=(fr,en)=>({fr,en});
+const D={
+'ex02-u03':{w:{'Shackle Claw':[T('Après le jet d\'attaque : bouge de 1 vers la cible en ignorant les pénalités de terrain.','After Attack Roll: Move 1 towards the target ignoring terrain penalties.'),T('Critique : Désarmement de la cible.','Critical: Disarm the target.'),0,'disarm'],'Beam Saber':[null,T('Critique : inflige 2 Dégâts à chaque ennemi adjacent à l\'Isvara B Type de cette unité.','Critical: Deal Damage 2 to each enemy adjacent to this unit\'s Isvara B Type.')]},
+ a:{'Sundering Strike':T('Fracture une unité ennemie adjacente.','Fracture an adjacent enemy unit.'),'Isvara B Type Direct':T('Déployez ou déplacez l\'Isvara B Type de cette unité sur un hex vide à portée 2.','Deploy or reposition this unit\'s Isvara B Type on an empty hex within Range 2.')}},
+'ex02-u02':{w:{'Beak Foot':[null,T('Critique : lancez 2 dés supplémentaires.','Critical: Roll 2 additional dice.')],'Beam Arquebus':[T('Après le jet d\'attaque : désactive toutes les Améliorations Bouclier de la cible.','After Attack Roll: Deactivate all Shield Upgrades on the target.'),T('Critique : après les dégâts de combat, cette unité bouge de 2 en ignorant l\'Engagement.','Critical: After Combat Damage: This unit Moves 2, ignoring Engagement.')]},
+ a:{'Lockdown':T('Après les dégâts de combat : si cette unité a attaqué un ennemi adjacent à son Corax, elle lui applique Ralentissement.','After Combat Damage: If this unit attacked an enemy adjacent to this unit\'s Corax, it applies Slow to that enemy unit.'),'Corax Direct':T('Déployez ou déplacez le Corax de cette unité sur un hex vide à portée 4.','Deploy or reposition this unit\'s Corax on an empty hex within Range 4.'),'Hover':T('Cette unité ignore les pénalités de terrain au déplacement.','This unit ignores terrain movement penalties.')}},
+'ex02-u01':{w:{'Beam Sabers':[null,T('Critique : après les dégâts de combat, répétez cette attaque à Timeline 0 sans cette capacité.','Critical: After Combat Damage: Repeat this attack at Timeline 0 without this ability.')],'Beam Rifle':[T('Force +1 pour chaque RWS allié adjacent à la cible.','Strength +1 for each allied RWS adjacent to the target.'),T('Critique : Dégâts +2.','Critical: Damage +2.'),2]},
+ a:{'Permet Burst':T('Après le jet d\'attaque : si cette unité ou une autre unité alliée à portée 3 attaque, mettez 1 dé sur Critique.','After Attack Roll: If this unit or another allied unit within Range 3 is attacking, set 1 die to a Critical.'),'BIT Stave Direct':T('Déployez ou déplacez les BIT Stave de cette unité sur un hex vide à portée 3.','Deploy or reposition this unit\'s BIT Stave on an empty hex within Range 3.'),'Challenge':T('Avant le jet d\'attaque : si cette unité n\'est pas en défense, échangez-la avec un allié défenseur à portée 2. Cette unité devient le défenseur.','Before Attack Roll: If this unit is not defending, swap it with a defending ally within Range 2. This unit becomes the defender.')}},
+'ex01-u03':{w:{'Twin-Barreled Grenade Launcher':[null,T('Critique : Ralentissement de la cible.','Critical: Slow the target.'),0,'slow'],'Beam Rifle':[T('Force +1 pour chaque Amélioration Vitesse sur cette unité.','Strength +1 for each Speed Upgrade on this unit.'),T('Critique : gagnez 1 Amélioration Vitesse.','Critical: Gain 1 Speed Upgrade.')]},
+ a:{'Blitzing Slash':T('Quand cette unité termine son déplacement : elle inflige 1 Dégât à chaque ennemi près duquel elle s\'est arrêtée (adjacent).','After this unit ends its movement: it deals Damage 1 to each enemy it moved adjacent to.'),'Jet Through':T('Tant que cette unité a au moins 1 Amélioration Vitesse, elle a Vol stationnaire (Hover).','While this unit has at least 1 Speed Upgrade, it has Hover.')}},
+'ex01-u02':{w:{'Armored Frame':[null,T('Critique : Dégâts +1 par Amélioration Bouclier sur cette unité (max. +4).','Critical: Damage +1 for each Shield Upgrade on this unit (max. +4).')]},
+ a:{'Rescue Maneuver':T('Secourez (Rescue) une Garnison alliée à portée 3.','Rescue an allied Garrison within Range 3.'),'Supply':T('Après que cette unité a Secouru une Garnison : gagnez 1 Amélioration Bouclier.','After this unit Rescues a Garrison: Gain 1 Shield Upgrade.'),'Material Transfer':T('Redistribuez les Améliorations entre cette unité et une autre unité alliée à portée 3.','Redistribute Upgrades among this unit and another allied unit within Range 3.')}},
+'ex01-u01':{w:{'Beam Saber':[null,T('Critique : après les dégâts de combat, gagnez 1 Amélioration Force.','Critical: After Combat Damage: Gain 1 Strength Upgrade.')],'Beam Magnum':[null,T('Critique : Dégâts +1 par Amélioration sur cette unité (max. +4).','Critical: Damage +1 for each Upgrade on this unit (max. +4).')]},
+ a:{'Psycho-Frame Synchrony':T('Avant le jet d\'attaque : un autre attaquant à portée 2 gagne Force +1 sur cette attaque par Amélioration Force sur cette unité.','Before Attack Roll: Another attacker within Range 2 gets Strength +1 this attack for each Strength Upgrade on this unit.'),'Newtype Destroyer':T('Les ennemis ne peuvent pas utiliser de capacités Réponse quand cette unité attaque ou est attaquée.','Enemies can\'t use Response abilities while this unit is attacking or being attacked.')}},
+'pa01-u03':{w:{'120mm Low-Recoil Cannons':[T('Cette attaque ignore la ligne de vue.','This attack ignores Line of Sight.'),T('Critique : Désarmement de la cible.','Critical: Disarm the target.'),0,'disarm'],'Quadruple Bop Missile':[null,T('Critique : Dégâts +1.','Critical: Damage +1.'),1]},
+ a:{'Coordinated Payload':T('Avant le jet d\'attaque : si cette unité attaque, elle gagne Force +2 par autre unité alliée à portée 3.','Before Attack Roll: If this unit is attacking, it gains Strength +2 for each other allied unit within Range 3.'),'Crowd Control':T('Après les dégâts de combat : si cette unité a infligé des Dégâts à 2 ennemis ou plus avec cette attaque, piochez 1 carte.','After Combat Damage: If this unit dealt Damage to 2 or more enemies this attack, draw 1 card.')}},
+'pa01-u02':{w:{'240mm Low-Recoil Cannon':[null,T('Critique : après les dégâts de combat, Fracture des cibles.','Critical: After Combat Damage: Fracture the targets.'),0,'fracture'],'Beam Rifle':[T('Cette attaque cible aussi chaque ennemi adjacent à la cible.','This attack also targets each enemy adjacent to the target.'),T('Critique : Dégâts +1.','Critical: Damage +1.'),1]},
+ a:{'Stunning Shot':T('Après les dégâts de combat : si cette unité a attaqué, chaque cible avance de 1 sur la Timeline.','After Combat Damage: If this unit attacked, each target moves up 1 Timeline.'),'Firing Line':T('Si cette unité ne s\'est pas déplacée lors de cette activation, ses attaques gagnent Précision +1 et Force +1.','If this unit hasn\'t moved this activation, its attacks gain Accuracy +1 and Strength +1.')}},
+'pa01-u01':{w:{'Beam Saber':[null,T('Critique : après les dégâts de combat, Fracture de la cible.','Critical: After Combat Damage: Fracture the target.'),0,'fracture'],'Beam Rifle':[null,T('Critique : Désarmement de la cible.','Critical: Disarm the target.'),0,'disarm']},
+ a:{'Toss Away':T('Après le jet d\'attaque : si cette unité attaque, elle Pousse la cible de 2.','After Attack Roll: If this unit is attacking, it Pushes 2 the target.'),'Inspiring Presence':T('Après le jet d\'attaque : si un autre allié à portée 2 attaque, relancez jusqu\'à 3 échecs.','After Attack Roll: If an another allied unit within Range 2 is attacking, reroll up to 3 misses.'),'Challenge':T('Avant le jet d\'attaque : si cette unité n\'est pas en défense, échangez-la avec un allié défenseur à portée 2. Cette unité devient le défenseur.','Before Attack Roll: If this unit is not defending, swap it with a defending ally within Range 2. This unit becomes the defender.')}},
+'st01-u06':{w:{'Handguns':[null,T('Critique : après les dégâts de combat, répétez cette attaque à Timeline 0 sans cette capacité.','Critical: After Combat Damage: Repeat this attack at Timeline 0 without this ability.')],'Burst Saber':[null,T('Critique : Dégâts +2.','Critical: Damage +2.'),2]},
+ a:{'Hunter\'s Edge':T('Poussez de 2 une unité ennemie adjacente et infligez-lui 1 Dégât.','Push 2 an adjacent enemy and deal Damage 1 to it.'),'Alaya-Vijnana Type E System':T('Si vous contrôlez 2 Objectifs ou plus, bougez de 2 et cette unité gagne Force +1 lors de cette activation.','If you control 2 or more Objectives, Move 2 and this unit gains Strength +1 this activation.')}},
+'st01-u05':{w:{'Heat Rod':[T('Avant le jet d\'attaque : Traction de 1 sur la cible.','Before Attack Roll: Pull 1 the target.'),T('Critique : Désarmement de la cible.','Critical: Disarm the target.'),0,'disarm'],'Beam Sword':[null,T('Critique : Dégâts +1.','Critical: Damage +1.'),1]},
+ a:{'No Escape':T('Ralentissement d\'une unité ennemie à portée 2.','Slow an enemy unit within Range 2.'),'Exploit Weakness':T('Les attaques de cette unité gagnent Force +2 contre les ennemis affectés par un statut.','This unit\'s attacks gain Strength +2 against enemies with status effects.'),'Hover':T('Cette unité ignore les pénalités de terrain au déplacement.','This unit ignores terrain movement penalties.')}},
+'st01-u04':{w:{'Heat Hawk':[null,T('Critique : après les dégâts de combat, Fracture de la cible.','Critical: After Combat Damage: Fracture the target.'),0,'fracture'],'Zaku Bazooka':[T('Après les dégâts de combat : effectuez un Sprint supplémentaire à Timeline 0.','After Combat Damage: Make an additional Dash at Timeline 0.'),T('Critique : Dégâts +2.','Critical: Damage +2.'),2]},
+ a:{'Checkmate':T('Lors de cette activation, les attaques de cette unité gagnent Précision +2 et « Après le jet d\'attaque : détruisez 1 Amélioration de la cible ».','This unit\'s attacks gain Accuracy +2 and "After Attack Roll: Destroy 1 Upgrade on the target." this activation.'),'Three-Times Faster':T('Cette unité bouge d\'1 hex supplémentaire en Sprint (Dash).','This unit Moves 1 additional hex when Dashing.'),'Char Kick':T('Après un Sprint de cette unité : elle inflige 1 Dégât à un ennemi adjacent.','After this unit Dashes: it deals Damage 1 to an adjacent enemy.')}},
+'st01-u03':{w:{'Rex Claws':[null,T('Critique : Ralentissement de la cible.','Critical: Slow the target.'),0,'slow'],'Tail Blade':[T('Avant le jet d\'attaque : Traction de 1 sur la cible.','Before Attack Roll: Pull 1 the target.'),T('Critique : Dégâts +1.','Critical: Damage +1.'),1]},
+ a:{'Annihilate':T('Si cette unité a fait une attaque Tail Blade lors de cette activation, elle fait une attaque Rex Claws supplémentaire à Timeline 0.','If this unit made a Tail Blade attack this activation, it makes an additional Rex Claws attack at Timeline 0.'),'Alaya-Vijnana Exertion':T('Infligez 3 Dégâts à cette unité. Bougez de 2.','Deal Damage 3 to this unit. Move 2.'),'Fight to the End':T('Avec 6 Dégâts ou plus : ses attaques gagnent Force +1. Avec 12 Dégâts ou plus : elles gagnent un Force +1 supplémentaire.','While this unit has: 6 or more Damage: its attacks gain Strength +1. 12 or more Damage: its attacks gain an additional Strength +1.')}}
+};
+PRESETS.forEach(p=>{
+  const d=D[p.id];if(!d)return;
+  p.weapons.forEach(w=>{const e=d.w[w.name];if(!e)return;if(e[0])w.eff=e[0];if(e[1])w.crit=e[1];if(e[2])w.critDmg=e[2];if(e[3])w.critStatus=e[3];});
+  p.abil.forEach(x=>{if(x[0]==='(B Type Direct)')x[0]='Isvara B Type Direct';const t=d.a[x[0]];if(t)x[3]=t;});
+  p.detail=true;
+});
+})();
+
+/* ===== Textes de l'interface ===== */
+const TXT={
+fr:{
+ sub:'Aide de jeu · règles v1.0 du 28/08/2026',red:'Rouge',blue:'Bleu',undo:'Annuler',undone:'Action annulée',nothingUndo:'Rien à annuler',
+ playerName:'Nom du joueur',vp:'PV',hand:'Main',deck:'Pioche',playCard:'Jouer',drawCard:'Piocher',phase:'Phase',round:'Round',gameOver:'Fin de partie',
+ tabGame:'Partie',tabCalc:'Attaque',tabRules:'Règles',tabGloss:'Glossaire',
+ winner:'Victoire : {0}',tieRule:'Égalité : le dernier joueur à avoir agi gagne',resume:'Reprendre',confirm:'Confirmer ?',newGame:'Nouvelle partie',
+ phaseEnd:'Fin de la phase {0}',phaseEnd1:'Résolvez les objectifs de la phase 1 et ajoutez les PV (boutons +1 / +2 en haut). Les deux joueurs piochent 3 cartes Tactique.',phaseEnd2:'Résolvez les objectifs de la phase 2, ajoutez les PV, puis terminez la partie pour comparer les scores.',
+ finish:'Terminer la partie',extraPhase:'Jouer une phase de plus',startPhase:'Commencer la phase {0}',
+ tieTitle:'Égalité sur la première case',tieText:'Chaque joueur lance un dé d\'attaque, le plus haut commence.',rollBoth:'Lancer un dé chacun',starts:'{0} commence',
+ tieResult:'{0} : {1} · {2} : {3} → {4} commence',
+ nextUp:'Prochaine activation',space:'case',toDeploy:'à déployer',activate:'Activer',
+ tlHint:'Le haut de la pile agit en premier',laterPhase:'Phase suivante',
+ reserve:'Réserve',carrier:'Porte-vaisseaux',disabled:'Désactivé',activeNow:'En activation',hpShort:'PV',
+ energy:'Énergie',speed:'Vitesse',strength:'Force',shields:'Boucliers',shield:'Bouclier',disarm:'Désarmement',fracture:'Fracture',slow:'Ralentissement',
+ moreUnit:'TL, pile, armes, suppression',payTL:'Payer du TL',stackOrder:'Ordre dans la pile',defeat:'Marquer comme vaincue',remove:'Supprimer',
+ addWeapon:'Ajouter une arme',wName:'Arme',rng:'Portée',str:'Force',add:'Ajouter',
+ addUnit:'Ajouter une unité',side:'Camp',preset:'Modèle (exemple du livre)',custom:'Personnalisée',name:'Nom',model:'Référence',sigTitle:'Titre signature',startTL:'TL de départ',isCarrier:'Porte-vaisseaux (désactivé quand il est vaincu)',weaponsKept:'{0} arme(s) du modèle conservée(s)',
+ nameReq:'Donnez un nom à l\'unité',unitAdded:'Unité ajoutée : {0}',
+ emptyTitle:'Aucune unité',emptyText:'Ajoutez les unités de chaque camp ci-dessous, ou chargez une partie d\'exemple composée d\'unités vues dans le livre de règles. Les statistiques viennent des cartes illustrées du livre ; pour les autres unités, recopiez les valeurs de votre carte.',loadSample:'Charger un exemple',
+ units:'unité(s)',noUnits:'Aucune unité pour ce camp.',journal:'Journal',newGameKeep:'Nouvelle partie (garde les unités)',wipe:'Tout effacer',
+ manualVP:'ajustement manuel',defeatedLog:'{0} vaincue',actStartLog:'Activation de {0}',damageLog:'{0} subit {1} dégât(s)',tlLog:'{0} : TL {1}',deployedLog:'{0} déployée',primLog:'{0} : {1}',rescueLog:'Secours d\'une Garnison',phaseStarted:'Phase {0} commence',
+ attackLog:'{0} attaque {1} : {2} touche(s), {3} dégât(s)',
+ p_dash:'Sprint',p_energize:'Recharge',p_rescue:'Secours',p_attack:'Attaque',
+ activation:'Activation',minimize:'Réduire',deploy:'Déploiement',deployHelp:'Placez l\'unité sur la case de votre Base, ou adjacente à la case centrale du Porte-vaisseaux. Elle devra bouger d\'au moins une case.',markDeployed:'Unité déployée',
+ advance:'Avance (gratuite)',advanceHelp:'Jusqu\'à {0} cases. −1 si Engagée, dans l\'eau ou les débris ; +1 par niveau d\'altitude gagné.',slowedNote:'Ralentie : cette Avance ne bouge pas, puis retirez le statut.',
+ primary:'Action principale (une seule)',primaryUsed:'Action principale déjà utilisée : {0}. Une autre n\'est possible que par une capacité d\'action supplémentaire.',
+ dash:'Sprint',dashSub:'2 cases',energize:'Recharge',rescue:'Secours',attackWith:'Attaquer avec',attack:'Attaque',manualAtk:'saisie manuelle',
+ more:'Autres',extraTL:'Payer du TL (capacité, carte)',spendEnergy:'Dépenser 1 Énergie',tacticPlayed:'Carte Tactique jouée',tacticDone:'Carte Tactique jouée (max. 1)',cmdHelp:'Capacités de Commande : une fois chacune par activation. Carte Tactique : une seule par activation.',
+ endActivation:'Terminer l\'activation',resumeAct:'Rouvrir',
+ attacker:'Attaquant',target:'Cible',unit:'Unité',manual:'Saisie manuelle',weapon:'Arme',baseStr:'Force de base',tlCost:'Coût TL',critFrom:'Critique dès',
+ strUpgrades:'Améliorations de Force',disarmedNote:'Attaquant Désarmé : relancez tous les dés qui touchent, aucun effet de critique.',
+ targetInfo:'{0}/{1} PV · {2} Bouclier(s) actif(s) · Fracture : {3}',activeShields:'Boucliers actifs',
+ modifiers:'Modificateurs',elevation:'Altitude de la cible',elevSame:'Même altitude',elevHigher:'Cible plus haute (−1)',elevLower:'Cible plus basse (+1)',
+ adjacent:'Cible adjacente',aWater:'Attaquant dans l\'eau',tWater:'Cible dans l\'eau',aDebris:'Attaquant dans les débris',tDebris:'Cible dans les débris',aMino:'Attaquant dans les particules Minovsky',tMino:'Cible dans les particules Minovsky',
+ accManual:'Précision',strBonus:'Bonus de Force',dmgAll:'Dégâts +X',dmgCrit:'Dégâts +X si critique',critStatus:'Statut si critique',none:'Aucun',
+ accElev:'altitude',accWater:'eau',accDebris:'débris',accMino:'Minovsky',
+ dice:'Dés d\'attaque',rollN:'Lancer {0} dés',rerollHits:'Relancer les touches (Désarmement)',newAttack:'Nouvelle attaque',diceHelp:'Lancez vos dés ou saisissez vos résultats, séparés par des espaces.',
+ noDice:'Aucun dé. Lancez les dés ici ou saisissez le résultat de vos dés physiques. Les mêmes dés peuvent être appliqués à plusieurs cibles pour une attaque de zone.',
+ crit:'critique',hit:'touche',miss:'raté',auto:'1 rate',accTotal:'Précision totale',diceCount:'{0} dé(s) saisi(s) pour {1} attendu(s)',
+ hitsLine:'Touches',critsShort:'critique(s)',dmgBonusLine:'Dégâts supplémentaires',shieldsLine:'Boucliers actifs ({0})',fractureLine:'Fracture (3 dégâts ou plus)',totalDamage:'Dégâts finaux',hpAfter:'PV restants',defeated:'vaincue',
+ disarmNoCrit:'Attaquant Désarmé : l\'effet de critique est annulé.',willApply:'Statut appliqué à la cible : {0}.',fractureNote:'Fracture : se déclenche à partir de 3 dégâts, comptés après les Boucliers.',
+ apply:'Appliquer et payer le TL',applyNoTL:'Appliquer à cette cible',paidNote:'Le coût TL est déjà payé pour cette attaque. Changez de cible pour une attaque de zone, ou lancez une nouvelle attaque.',
+ quickRef:'Aide-mémoire',searchRules:'Chercher dans les règles',searchGloss:'Chercher un terme',noResult:'Aucun résultat.',
+ abilities:'Capacités',abilNote:'Noms seulement : lisez les effets sur votre carte.',ab_command:'Commande',ab_response:'Réponse',ab_ongoing:'Continue',ab_setup:'Mise en place',
+ srcNote:'Résumé et traduction non officiels, d\'après le Core Rulebook v1.0 de Gundam Assemble. En cas de doute, le texte anglais fait foi.'
+},
+en:{
+ sub:'Play aid · rulebook v1.0 of 08/28/2026',red:'Red',blue:'Blue',undo:'Undo',undone:'Action undone',nothingUndo:'Nothing to undo',
+ playerName:'Player name',vp:'VP',hand:'Hand',deck:'Deck',playCard:'Play',drawCard:'Draw',phase:'Phase',round:'Round',gameOver:'Game over',
+ tabGame:'Game',tabCalc:'Attack',tabRules:'Rules',tabGloss:'Glossary',
+ winner:'Winner: {0}',tieRule:'Tie: the last player to act wins',resume:'Resume',confirm:'Confirm?',newGame:'New game',
+ phaseEnd:'End of Phase {0}',phaseEnd1:'Resolve Phase 1 Objectives and add the VP (+1 / +2 buttons above). Both players draw 3 Tactics cards.',phaseEnd2:'Resolve Phase 2 Objectives, add the VP, then end the game to compare scores.',
+ finish:'End the game',extraPhase:'Play one more Phase',startPhase:'Start Phase {0}',
+ tieTitle:'Tie on the first space',tieText:'Each player rolls an attack die, the higher roll goes first.',rollBoth:'Roll one die each',starts:'{0} starts',
+ tieResult:'{0}: {1} · {2}: {3} → {4} starts',
+ nextUp:'Next activation',space:'space',toDeploy:'to deploy',activate:'Activate',
+ tlHint:'Top of the stack acts first',laterPhase:'Next Phase',
+ reserve:'Reserve',carrier:'Carrier',disabled:'Disabled',activeNow:'Activating',hpShort:'HP',
+ energy:'Energy',speed:'Speed',strength:'Strength',shields:'Shields',shield:'Shield',disarm:'Disarm',fracture:'Fracture',slow:'Slow',
+ moreUnit:'TL, stack, weapons, delete',payTL:'Pay TL',stackOrder:'Stack order',defeat:'Mark as defeated',remove:'Delete',
+ addWeapon:'Add a weapon',wName:'Weapon',rng:'Range',str:'Strength',add:'Add',
+ addUnit:'Add a unit',side:'Side',preset:'Preset (example from the book)',custom:'Custom',name:'Name',model:'Model no.',sigTitle:'Signature title',startTL:'Starting TL',isCarrier:'Carrier (disabled when defeated)',weaponsKept:'{0} preset weapon(s) kept',
+ nameReq:'Give the unit a name',unitAdded:'Unit added: {0}',
+ emptyTitle:'No units yet',emptyText:'Add each side\'s units below, or load a sample game made of units shown in the rulebook. Stats come from the illustrated cards in the book; for other units, copy the values from your card.',loadSample:'Load a sample',
+ units:'unit(s)',noUnits:'No units on this side.',journal:'Log',newGameKeep:'New game (keep units)',wipe:'Clear everything',
+ manualVP:'manual adjustment',defeatedLog:'{0} defeated',actStartLog:'{0} activates',damageLog:'{0} takes {1} damage',tlLog:'{0}: TL {1}',deployedLog:'{0} deployed',primLog:'{0}: {1}',rescueLog:'Garrison Rescued',phaseStarted:'Phase {0} begins',
+ attackLog:'{0} attacks {1}: {2} hit(s), {3} damage',
+ p_dash:'Dash',p_energize:'Energize',p_rescue:'Rescue',p_attack:'Attack',
+ activation:'Activation',minimize:'Minimize',deploy:'Deployment',deployHelp:'Place the unit on your Base hex, or adjacent to the Carrier\'s middle hex. It must move at least one hex.',markDeployed:'Unit deployed',
+ advance:'Advance (free)',advanceHelp:'Up to {0} hexes. −1 if Engaged, in water or debris; +1 per elevation level gained.',slowedNote:'Slowed: this Advance does not move, then remove the status.',
+ primary:'Primary Action (one only)',primaryUsed:'Primary Action already used: {0}. Another is only possible through an additional-action ability.',
+ dash:'Dash',dashSub:'2 hexes',energize:'Energize',rescue:'Rescue',attackWith:'Attack with',attack:'Attack',manualAtk:'manual entry',
+ more:'Other',extraTL:'Pay TL (ability, card)',spendEnergy:'Spend 1 Energy',tacticPlayed:'Tactics card played',tacticDone:'Tactics card played (max. 1)',cmdHelp:'Command abilities: once each per activation. Tactics card: one per activation.',
+ endActivation:'End activation',resumeAct:'Reopen',
+ attacker:'Attacker',target:'Target',unit:'Unit',manual:'Manual entry',weapon:'Weapon',baseStr:'Base Strength',tlCost:'TL cost',critFrom:'Critical on',
+ strUpgrades:'Strength Upgrades',disarmedNote:'Attacker is Disarmed: re-roll all dice that hit, no critical effects.',
+ targetInfo:'{0}/{1} HP · {2} active Shield(s) · Fracture: {3}',activeShields:'Active Shields',
+ modifiers:'Modifiers',elevation:'Target elevation',elevSame:'Same elevation',elevHigher:'Target higher (−1)',elevLower:'Target lower (+1)',
+ adjacent:'Target adjacent',aWater:'Attacker in water',tWater:'Target in water',aDebris:'Attacker in debris',tDebris:'Target in debris',aMino:'Attacker in Minovsky Particles',tMino:'Target in Minovsky Particles',
+ accManual:'Accuracy',strBonus:'Strength bonus',dmgAll:'Damage +X',dmgCrit:'Damage +X on critical',critStatus:'Status on critical',none:'None',
+ accElev:'elevation',accWater:'water',accDebris:'debris',accMino:'Minovsky',
+ dice:'Attack dice',rollN:'Roll {0} dice',rerollHits:'Re-roll hits (Disarm)',newAttack:'New attack',diceHelp:'Roll your dice or type your results, separated by spaces.',
+ noDice:'No dice yet. Roll here or type the result of your physical dice. The same dice can be applied to several targets for an area attack.',
+ crit:'critical',hit:'hit',miss:'miss',auto:'1 misses',accTotal:'Total Accuracy',diceCount:'{0} die/dice entered, {1} expected',
+ hitsLine:'Hits',critsShort:'critical',dmgBonusLine:'Extra damage',shieldsLine:'Active Shields ({0})',fractureLine:'Fracture (3 damage or more)',totalDamage:'Final damage',hpAfter:'HP left',defeated:'defeated',
+ disarmNoCrit:'Attacker is Disarmed: the critical effect is cancelled.',willApply:'Status applied to the target: {0}.',fractureNote:'Fracture triggers from 3 damage, counted after Shields.',
+ apply:'Apply and pay TL',applyNoTL:'Apply to this target',paidNote:'The TL cost is already paid for this attack. Change target for an area attack, or start a new attack.',
+ quickRef:'Quick reference',searchRules:'Search the rules',searchGloss:'Search a term',noResult:'No results.',
+ abilities:'Abilities',abilNote:'Names only: read the effects on your card.',ab_command:'Command',ab_response:'Response',ab_ongoing:'Ongoing',ab_setup:'Setup',
+ srcNote:'Unofficial summary and translation based on the Gundam Assemble Core Rulebook v1.0. When in doubt, the English text is authoritative.'
+}};
+
+/* ===== Textes des schémas ===== */
+Object.assign(TXT.fr,{
+ tabVisu:'Schémas',v_learn:'Apprendre',v_table:'À la table',
+ v_introLearn:'Le jeu en 8 étapes, dans l\'ordre où on le joue. Touchez un chiffre pour sauter à un chapitre.',
+ v_introTable:'L\'essentiel sur quelques écrans. Les blocs moins fréquents sont repliés, touchez-les pour les ouvrir.',
+ v_example:'Exemple',
+ v_c1s:'But',v_c2s:'Timeline',v_c3s:'Activation',v_c4s:'Mouvement',v_c5s:'Attaque',v_c6s:'Vue',v_c7s:'Effets',v_c8s:'Points',
+ v_c1:'Le but du jeu',v_c1l:'Deux phases de 10 rounds. Battez des ennemis, secourez des Garnisons, tenez des objectifs : celui qui a le plus de points de victoire gagne.',
+ v_c1f1:'Une partie = 2 phases de 10 rounds',v_c1f2:'Mise en place, dans l\'ordre',
+ v_c2:'La Timeline',v_c2l:'Chaque unité a un jeton sur une piste de 10 cases. On joue case par case, de 1 à 10. Agir coûte du TL : le jeton avance d\'autant, et l\'unité rejouera à sa nouvelle case.',
+ v_c2f1:'Le jeton avance du coût payé',v_c2f2:'Au-delà de la case 10, on repart de la case 1 : l\'unité agira à la phase suivante',v_c2f3:'Sur une même case, le haut de la pile agit en premier',
+ v_c2e:'Le Gundam attaque au sabre (3 TL) depuis la case 1. Son jeton passe à la case 4 : il ne rejouera qu\'au round 4. Le Zeong, à la case 8, paie une attaque à 4 TL : il va à 10, repart à 1 et finit à la case 2 de la phase suivante.',
+ v_c3:'Activer une unité',v_c3l:'Quand c\'est son tour, l\'unité avance gratuitement puis fait une seule action principale. Chaque action paie son coût en TL tout de suite.',
+ v_f1:'Début : les Boucliers désactivés se réactivent',v_f2:'Première fois ? Déployez l\'unité depuis la Base ou le Porte-vaisseaux. Elle doit bouger d\'au moins une case.',v_f3:'Avance gratuite : jusqu\'à 3 cases (+ Vitesse)',
+ v_f4:'Une action principale',v_f4a:'TL de l\'arme',v_f4b:'2 cases',v_f5:'En plus : capacités de Commande (1 fois chacune) et 1 carte Tactique maximum',v_f6:'Fin : le jeton a avancé du coût payé',
+ v_attack:'Attaque',v_dash:'Sprint',v_energize:'Recharge',v_rescue:'Secours',v_energy:'Énergie',v_vp:'PV',
+ v_c4:'Se déplacer',v_c4l:'On avance d\'une case à la fois dans toutes les directions. Un ennemi adjacent, l\'eau ou une montée coûtent des cases en plus.',
+ v_hex3:'Avance libre : 3 cases (G)',v_hex2:'Engagée par un ennemi (Z) : 2 cases, et on le contourne',v_c4f3:'Monter coûte 1 case de plus par niveau',
+ v_e1:'Sol → 1 : 2 cases',v_e2:'1 → 2 : 2 cases',v_e3:'Sol → 2 : 3 cases',v_e4:'Descendre : gratuit',
+ v_c5:'Attaquer',v_c5l:'Choisissez arme et cible, payez le TL, lancez autant de d10 que la Force. Chaque dé qui touche fait 1 dégât, les Boucliers en absorbent.',
+ v_g1:'Préparer',v_g2:'Les dés',v_g3:'Résoudre',
+ v_a1:'Déclarer arme et cible',v_a2:'Vérifier portée et ligne de vue',v_a3:'Payer le TL',v_a4:'Réponses possibles',v_a5:'Lancer les dés',v_a6:'Réponses (le Désarmement agit ici)',v_a7:'Effets de critique',v_a8:'Dégâts = touches − Boucliers',v_a9:'Réponses possibles',
+ v_rt_before:'avant le jet',v_rt_after:'après le jet',v_rt_dmg:'après les dégâts',
+ v_acc:'Préc.',v_dieFace:'Face du dé',v_miss:'raté',v_hit:'touche',v_crit:'critique',v_diceAria:'Quelles faces du d10 touchent selon la Précision',
+ v_c5f2:'Un 1 rate toujours, 9 et 10 touchent toujours. La Précision décale le seuil des autres faces.',
+ v_hits:'touches',v_shieldAct:'Bouclier actif',v_dmg:'dégâts',
+ v_d1:'Chaque Bouclier actif absorbe 1 dégât puis se retourne.',v_d2:'Fracture : si la cible subit 3 dégâts ou plus, elle en subit 3 de plus.',v_d3:'À 0 PV : l\'unité est vaincue, +2 TL, retour en Réserve.',
+ v_c5e:'Un tir de Force 6 : 9, 4, 1, 7, 2, 10. Le 1 et le 2 ratent, les autres touchent : 4 touches dont 2 critiques. La cible a 1 Bouclier actif : 4 − 1 = 3 dégâts (hors effet de critique de l\'arme).',
+ v_p_higher:'Cible plus haute',v_p_lower:'Cible plus basse',v_p_water:'Eau : attaquant / cible dedans',v_p_debris:'Débris : attaquant / cible dedans',v_p_mino:'Minovsky : l\'un des deux dedans',
+ v_p_note:'Minovsky : seulement contre une cible non adjacente, jamais cumulé.',
+ v_c6:'Ligne de vue et altitude',v_c6l:'Bleu tire sur rouge. On trace une ligne de centre à centre. Un obstacle ne bloque que s\'il est assez haut ou au même niveau que les deux.',
+ v_los_terr:'Terrain plus haut que les deux : bloquée',v_los_enemy:'Ennemi au niveau des deux : bloquée',v_los_over:'Ennemi plus bas que le tireur : dégagée',v_los_ally:'Allié ou Garnison alliée : jamais bloquée',
+ v_c7:'Statuts, poussées et terrains',v_c7l:'Quelques effets qui changent la partie. Chaque statut ne peut être posé qu\'une fois sur une unité.',
+ v_disarm:'Désarmement',v_fracture:'Fracture',v_slow:'Ralentissement',
+ v_st1a:'prochaine attaque',v_st1b:'relancer les touches',v_st1c:'Aucun effet de critique. Se retire après.',
+ v_st2a:'3 dégâts ou plus',v_st2b:'+3 dégâts',v_st2c:'Se retire une fois déclenchée.',
+ v_st3a:'prochaine Avance',v_st3b:'0 case',v_st3c:'Sprint et autres mouvements non touchés.',
+ v_push2:'Poussée 2 : s\'éloigner',v_collide:'Collision : 2 dégâts',v_pull1:'Traction 1 : se rapprocher',
+ v_pushAria:'Exemples de Poussée, de collision et de Traction',v_c7f2:'Pas de pénalités de terrain. Un choc coûte 2 dégâts.',
+ v_water:'Eau',v_debris:'Débris',v_water1:'Mouvement : −1 case',v_water2:'Précision : −1 si l\'attaquant y est, −1 si la cible y est',
+ v_mino:'Particules Minovsky',v_mino1:'Précision −2 contre une cible non adjacente',v_mino2:'Si l\'un des deux est dedans. Non cumulatif.',
+ v_imp:'Infranchissable',v_imp1:'Pas de traversée sans Hover, on ne peut pas y finir son déplacement.',
+ v_c8:'Marquer des points',v_c8l:'On marque en battant des unités et Garnisons, en secourant, et en tenant des objectifs à la fin de chaque phase. Le plus haut score gagne ; à égalité, le dernier à avoir agi.',
+ v_vp1:'Unité vaincue : sa valeur PV',v_vp2:'Garnison ennemie vaincue',v_vp3:'Garnison alliée secourue',v_vp4:'Objectifs, à la fin de chaque phase',
+ v_o_ally:'unités alliées',v_o_enemy:'unités ennemies',v_o_win:'contrôle',v_c8f2:'Disputer un objectif : finir son activation dessus ou à côté.',
+ v_o1:'Plus d\'alliés que d\'ennemis autour : l\'objectif neutre est capturé, l\'ennemi redevient neutre.',v_o2:'Le contrôle reste jusqu\'à une dispute gagnée par l\'adversaire.',v_o3:'Les mouvements hors de son activation ne disputent pas.',
+ v_cr1:'Il s\'active comme une unité et remplace la Base.',v_cr2:'Il bouge case par case, la partie centrale prend la place libérée.',v_cr3:'Il ne s\'engage pas et ne peut être ni poussé ni tiré.',v_cr4:'Vaincu, il est désactivé : il reste sur le plateau et bloque.',
+ v_phase1:'Phase 1',v_endp1:'Fin : objectifs, PV, pioche de 3 cartes',v_phase2:'Phase 2',v_endp2:'Fin : objectifs, PV, on compare',
+ v_s1:'Plateau',v_s2:'Escouade et deck de 9',v_s3:'Jetons sur la Timeline',v_s4:'3 cartes en main',v_s5:'Capacités Setup',v_s6:'Plus petit TL commence',
+ v_trackAria:'Jeton qui part de la case {0} et paie {1} TL, il arrive à la case {2}',v_stackAria:'Pile de trois jetons : celui du haut agit en premier',
+ v_hexAria:'Carte des cases atteignables avec {0} cases de mouvement',v_elevAria:'Terrain avec deux niveaux au-dessus du sol',
+ v_t_act:'Une activation',v_t_atk:'Une attaque',v_t_hit:'Toucher',v_t_dmg:'Dégâts et statuts',v_t_facts:'Chiffres clés',v_t_tl:'Timeline',v_t_move:'Mouvement et altitude',v_t_los:'Ligne de vue',v_t_push:'Poussée et Traction',v_t_terr:'Terrains spéciaux',v_t_vp:'Points et objectifs',v_t_carrier:'Porte-vaisseaux',v_t_game:'Déroulé et mise en place'
+});
+Object.assign(TXT.en,{
+ tabVisu:'Visuals',v_learn:'Learn',v_table:'At the table',
+ v_introLearn:'The game in 8 steps, in the order you play it. Tap a number to jump to a chapter.',
+ v_introTable:'The essentials in a few screens. Less frequent blocks are collapsed, tap them to open.',
+ v_example:'Example',
+ v_c1s:'Goal',v_c2s:'Timeline',v_c3s:'Activation',v_c4s:'Movement',v_c5s:'Attack',v_c6s:'Sight',v_c7s:'Effects',v_c8s:'Points',
+ v_c1:'The goal',v_c1l:'Two Phases of 10 rounds. Defeat enemies, Rescue Garrisons, hold Objectives: whoever has the most victory points wins.',
+ v_c1f1:'A game = 2 Phases of 10 rounds',v_c1f2:'Setup, in order',
+ v_c2:'The Timeline',v_c2l:'Every unit has a token on a 10-space track. You play space by space, from 1 to 10. Acting costs TL: the token moves forward by that amount, and the unit acts again at its new space.',
+ v_c2f1:'The token moves forward by the cost paid',v_c2f2:'Past space 10 you restart at 1: the unit acts in the next Phase',v_c2f3:'On the same space, the top of the stack acts first',
+ v_c2e:'The Gundam attacks with its Beam Saber (3 TL) from space 1. Its token goes to space 4: it will not act again until round 4. Zeong, on space 8, pays a 4 TL attack: it goes to 10, wraps to 1 and ends on space 2 of the next Phase.',
+ v_c3:'Activating a unit',v_c3l:'On its turn, a unit advances for free then takes a single Primary Action. Each action pays its TL cost straight away.',
+ v_f1:'Start: deactivated Shields reactivate',v_f2:'First time? Deploy the unit from the Base or Carrier. It must move at least one hex.',v_f3:'Free Advance: up to 3 hexes (+ Speed)',
+ v_f4:'One Primary Action',v_f4a:'weapon\'s TL',v_f4b:'2 hexes',v_f5:'Also: Command abilities (once each) and at most 1 Tactics card',v_f6:'End: the token has moved forward by the cost paid',
+ v_attack:'Attack',v_dash:'Dash',v_energize:'Energize',v_rescue:'Rescue',v_energy:'Energy',v_vp:'VP',
+ v_c4:'Moving',v_c4l:'Move one hex at a time in any direction. An adjacent enemy, water or a climb each cost extra hexes.',
+ v_hex3:'Free Advance: 3 hexes (G)',v_hex2:'Engaged by an enemy (Z): 2 hexes, going around it',v_c4f3:'Climbing costs 1 extra hex per level',
+ v_e1:'Ground → 1: 2 hexes',v_e2:'1 → 2: 2 hexes',v_e3:'Ground → 2: 3 hexes',v_e4:'Going down: free',
+ v_c5:'Attacking',v_c5l:'Pick a weapon and a target, pay the TL, roll as many d10 as the Strength. Each die that hits deals 1 damage, Shields absorb some.',
+ v_g1:'Prepare',v_g2:'The dice',v_g3:'Resolve',
+ v_a1:'Declare weapon and target',v_a2:'Check range and Line of Sight',v_a3:'Pay the TL',v_a4:'Responses allowed',v_a5:'Roll the dice',v_a6:'Responses (Disarm acts here)',v_a7:'Critical hit effects',v_a8:'Damage = hits − Shields',v_a9:'Responses allowed',
+ v_rt_before:'before roll',v_rt_after:'after roll',v_rt_dmg:'after damage',
+ v_acc:'Acc.',v_dieFace:'Die face',v_miss:'miss',v_hit:'hit',v_crit:'critical',v_diceAria:'Which d10 faces hit depending on Accuracy',
+ v_c5f2:'A 1 always misses, 9 and 10 always hit. Accuracy shifts the threshold of the other faces.',
+ v_hits:'hits',v_shieldAct:'active Shield',v_dmg:'damage',
+ v_d1:'Each active Shield absorbs 1 damage then flips.',v_d2:'Fracture: if the target takes 3 damage or more, it takes 3 more.',v_d3:'At 0 HP: the unit is defeated, +2 TL, back to Reserve.',
+ v_c5e:'A Strength 6 shot: 9, 4, 1, 7, 2, 10. The 1 and the 2 miss, the others hit: 4 hits including 2 criticals. The target has 1 active Shield: 4 − 1 = 3 damage (not counting the weapon\'s critical effect).',
+ v_p_higher:'Target higher',v_p_lower:'Target lower',v_p_water:'Water: attacker / target inside',v_p_debris:'Debris: attacker / target inside',v_p_mino:'Minovsky: either one inside',
+ v_p_note:'Minovsky: only against a non-adjacent target, never stacked.',
+ v_c6:'Line of Sight and elevation',v_c6l:'Blue shoots at red. Draw a line from centre to centre. An obstacle only blocks if it is tall enough or at the same level as both.',
+ v_los_terr:'Terrain higher than both: blocked',v_los_enemy:'Enemy at both units\' level: blocked',v_los_over:'Enemy lower than the shooter: clear',v_los_ally:'Ally or allied Garrison: never blocks',
+ v_c7:'Statuses, pushes and terrain',v_c7l:'A few effects that change the game. Each status can only be on a unit once.',
+ v_disarm:'Disarm',v_fracture:'Fracture',v_slow:'Slow',
+ v_st1a:'next attack',v_st1b:'re-roll hits',v_st1c:'No critical effects. Removed afterwards.',
+ v_st2a:'3 damage or more',v_st2b:'+3 damage',v_st2c:'Removed once triggered.',
+ v_st3a:'next Advance',v_st3b:'0 hexes',v_st3c:'Dash and other movement unaffected.',
+ v_push2:'Push 2: move away',v_collide:'Collision: 2 damage',v_pull1:'Pull 1: move closer',
+ v_pushAria:'Examples of Push, collision and Pull',v_c7f2:'No terrain penalties. A collision costs 2 damage.',
+ v_water:'Water',v_debris:'Debris',v_water1:'Movement: −1 hex',v_water2:'Accuracy: −1 if the attacker is in it, −1 if the target is in it',
+ v_mino:'Minovsky Particles',v_mino1:'Accuracy −2 against a non-adjacent target',v_mino2:'If either one is inside. Not cumulative.',
+ v_imp:'Impassable',v_imp1:'No crossing without Hover, and no ending a move there.',
+ v_c8:'Scoring points',v_c8l:'Score by defeating units and Garrisons, Rescuing, and holding Objectives at the end of each Phase. The highest score wins; on a tie, the last player to act.',
+ v_vp1:'Unit defeated: its VP value',v_vp2:'Enemy Garrison defeated',v_vp3:'Allied Garrison Rescued',v_vp4:'Objectives, at the end of each Phase',
+ v_o_ally:'allied units',v_o_enemy:'enemy units',v_o_win:'control',v_c8f2:'Contesting an Objective: end your activation on or next to it.',
+ v_o1:'More allies than enemies around it: a neutral Objective is captured, an enemy one goes neutral.',v_o2:'Control stays until the opponent wins a contest.',v_o3:'Moves made outside your activation do not contest.',
+ v_cr1:'It activates like a unit and replaces the Base.',v_cr2:'It moves hex by hex, the middle section takes the vacated hex.',v_cr3:'It does not Engage and cannot be Pushed or Pulled.',v_cr4:'When defeated it is disabled: it stays on the board and blocks.',
+ v_phase1:'Phase 1',v_endp1:'End: Objectives, VP, draw 3 cards',v_phase2:'Phase 2',v_endp2:'End: Objectives, VP, compare',
+ v_s1:'Board',v_s2:'Squad and 9-card deck',v_s3:'Tokens on the Timeline',v_s4:'3 cards in hand',v_s5:'Setup abilities',v_s6:'Lowest TL goes first',
+ v_trackAria:'A token starting on space {0} paying {1} TL, ending on space {2}',v_stackAria:'A stack of three tokens: the top one acts first',
+ v_hexAria:'Map of hexes reachable with {0} hexes of movement',v_elevAria:'Terrain with two levels above ground',
+ v_t_act:'One activation',v_t_atk:'One attack',v_t_hit:'Hitting',v_t_dmg:'Damage and statuses',v_t_facts:'Key numbers',v_t_tl:'Timeline',v_t_move:'Movement and elevation',v_t_los:'Line of Sight',v_t_push:'Push and Pull',v_t_terr:'Special terrain',v_t_vp:'Points and Objectives',v_t_carrier:'Carriers',v_t_game:'Game flow and setup'
+});
+
+/* ===== Application ===== */
+(function(){
+'use strict';
+const KEY='ga-aide-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rnd=()=>1+Math.floor(Math.random()*10);
+const other=s=>s==='A'?'B':'A';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+const newCalc=()=>({att:'',wi:0,tgt:'',base:3,tl:2,strBonus:0,acc:0,elev:'same',aW:false,tW:false,aD:false,tD:false,aM:false,tM:false,adj:false,crit:9,dmgC:0,dmgA:0,cs:'',mShield:0,mFrac:false,mDis:false,mUp:0,text:'',paid:false});
+const newForm=()=>({side:'A',preset:'',name:'',model:'',title:'',hp:10,vp:5,start:2,carrier:false,critAt:9,weapons:[],abilities:[]});
+function fresh(){return{lang:'fr',tab:'game',vmode:'learn',phase:1,over:false,last:null,seq:0,players:{A:{name:'',vp:0,deck:6,hand:3},B:{name:'',vp:0,deck:6,hand:3}},units:[],act:null,actMin:false,sel:null,log:[],calc:newCalc(),form:newForm(),tie:''};}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);const f=fresh();const s=Object.assign(f,o);s.calc=Object.assign(newCalc(),o.calc||{});s.form=Object.assign(newForm(),o.form||{});return s;}}catch(e){}return null;}
+let S=load()||fresh();
+let hist=[],ARM=null,Q={rules:'',gl:''},toastT=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+const t=(k,...a)=>{let s=(TXT[S.lang]&&TXT[S.lang][k]);if(s==null)s=TXT.fr[k];if(s==null)s=k;a.forEach((v,i)=>{s=s.split('{'+i+'}').join(v);});return s;};
+const L=o=>o==null?'':(typeof o==='object'?(o[S.lang]||o.fr||''):o);
+const U=id=>S.units.find(u=>u.id===id);
+const pname=side=>S.players[side].name||t(side==='A'?'red':'blue');
+const space=u=>u.T%10+1, uph=u=>Math.floor(u.T/10)+1;
+function abbr(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);if(w.length>1)return(w[0][0]+w[1][0]+(w[2]?w[2][0]:'')).toUpperCase().slice(0,3);return String(n).slice(0,2).toUpperCase();}
+
+/* ---------- historique ---------- */
+function snap(){return JSON.stringify({phase:S.phase,over:S.over,last:S.last,seq:S.seq,players:S.players,units:S.units,act:S.act,sel:S.sel,log:S.log,tie:S.tie});}
+function push(){hist.push(snap());if(hist.length>60)hist.shift();}
+function undo(){if(!hist.length){toast(t('nothingUndo'),false);return;}Object.assign(S,JSON.parse(hist.pop()));save();render();toast(t('undone'),false);}
+function log(m){S.log.unshift(m);if(S.log.length>80)S.log.pop();}
+function mut(fn,msg){push();fn();if(msg)log(msg);save();render();if(msg)toast(msg,true);}
+function toast(msg,canUndo){const el=$('#toast');el.innerHTML='<span>'+esc(msg)+'</span>'+(canUndo?'<button data-act="undo">'+esc(t('undo'))+'</button>':'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},5000);}
+
+/* ---------- logique de jeu ---------- */
+function mkUnit(o){const id='u'+(++S.seq);const base={side:'A',name:'',model:'',title:'',hp:10,vp:5,start:2,energy:0,shield:{n:0,up:0},speed:0,str:0,st:{disarm:false,fracture:false,slow:false},reserve:true,disabled:false,carrier:false,doneAt:null,critAt:9,weapons:[],abilities:[]};
+  const u=Object.assign(base,JSON.parse(JSON.stringify(o)));u.id=id;u.max=u.hp;u.T=u.start-1;u.seq=S.seq;return u;}
+function addTL(u,n){u.T=Math.max(0,u.T+n);u.seq=++S.seq;}
+function nextUp(){
+  const c=S.units.filter(u=>!u.disabled&&u.T<S.phase*10&&u.doneAt!==u.T);
+  if(!c.length)return null;
+  const m=Math.min(...c.map(u=>u.T));
+  const at=c.filter(u=>u.T===m);
+  const sides=new Set(at.map(u=>u.side));
+  let side;
+  if(sides.size===2){if(!S.last)return{tie:true,T:m};side=other(S.last);}else side=[...sides][0];
+  const u=at.filter(x=>x.side===side).sort((a,b)=>a.seq-b.seq)[0];
+  return{u,T:m};
+}
+function addVP(side,n,why){S.players[side].vp+=n;if(why)log(pname(side)+' '+(n>=0?'+':'')+n+' PV · '+why);}
+function defeat(u,who){
+  addVP(other(u.side),u.vp,t('defeatedLog',u.name));
+  if(u.carrier){u.disabled=true;u.hp=0;}
+  else{u.hp=u.max;u.st={disarm:false,fracture:false,slow:false};u.reserve=true;addTL(u,2);u.doneAt=null;}
+  if(S.act&&S.act.id===u.id){S.act=null;}
+}
+function startAct(id){mut(()=>{const u=U(id);u.shield.up=u.shield.n;S.act={id,t0:u.T,primary:'',tactic:false,spent:0};S.actMin=false;S.last=u.side;S.sel=id;},t('actStartLog',U(id).name));}
+function endAct(){mut(()=>{const u=S.act&&U(S.act.id);if(u){u.doneAt=(u.T===S.act.t0)?u.T:null;}S.act=null;});}
+function resetGame(full){
+  S.phase=1;S.over=false;S.last=null;S.act=null;S.sel=null;S.tie='';S.log=[];
+  S.players.A=Object.assign(S.players.A,{vp:0,deck:6,hand:3});S.players.B=Object.assign(S.players.B,{vp:0,deck:6,hand:3});
+  if(full)S.units=[];
+  else S.units.forEach(u=>{u.hp=u.max;u.T=u.start-1;u.seq=++S.seq;u.energy=0;u.shield={n:0,up:0};u.speed=0;u.str=0;u.st={disarm:false,fracture:false,slow:false};u.reserve=true;u.disabled=false;u.doneAt=null;});
+  S.calc=newCalc();hist=[];
+}
+function endPhase(extend){
+  const draw=(p)=>{if(extend&&S.phase>=2)p.deck+=3;const n=Math.min(3,p.deck);p.deck-=n;p.hand+=n;};
+  draw(S.players.A);draw(S.players.B);S.phase++;
+}
+
+/* ---------- calculateur ---------- */
+function parseDice(txt){return String(txt).split(/[^0-9]+/).filter(Boolean).map(Number).filter(n=>n>=1&&n<=10);}
+function calcCompute(){
+  const c=S.calc,au=c.att?U(c.att):null,tu=c.tgt?U(c.tgt):null;
+  const strUp=au?au.str:c.mUp, dis=au?au.st.disarm:c.mDis;
+  const strTot=Math.max(0,c.base+strUp+c.strBonus);
+  const parts=[];let acc=0;
+  const add=(v,label)=>{if(v){acc+=v;parts.push((v>0?'+':'')+v+' '+label);}};
+  add(c.elev==='tHigher'?-1:c.elev==='tLower'?1:0,t('accElev'));
+  add(-(c.aW?1:0)-(c.tW?1:0),t('accWater'));
+  add(-(c.aD?1:0)-(c.tD?1:0),t('accDebris'));
+  if(!c.adj&&(c.aM||c.tM))add(-2,t('accMino'));
+  add(c.acc,t('accManual'));
+  const dice=parseDice(c.text).map(v=>{
+    let k,m=null;
+    if(v===1){k='miss';}
+    else if(v>=c.crit){k='crit';}
+    else{m=v+acc;k=m>=4?'hit':'miss';}
+    return{v,k,m};
+  });
+  const hits=dice.filter(d=>d.k!=='miss').length;
+  const crits=dice.filter(d=>d.k==='crit').length;
+  const critOn=crits>0&&!dis;
+  const bonus=hits>0?c.dmgA+(critOn?c.dmgC:0):0;
+  const pre=hits+bonus;
+  const sh=tu?tu.shield.up:c.mShield;
+  const fr=tu?tu.st.fracture:c.mFrac;
+  const prevented=Math.min(sh,pre);
+  const after=pre-prevented;
+  const fracOn=fr&&after>=3;
+  const fin=after+(fracOn?3:0);
+  return{au,tu,strUp,dis,strTot,acc,parts,dice,hits,crits,critOn,bonus,pre,sh,fr,prevented,after,fracOn,fin,hpAfter:tu?tu.hp-fin:null};
+}
+function weaponOf(u,i){return u&&u.weapons[i]?u.weapons[i]:null;}
+function pickWeapon(){
+  const c=S.calc,u=c.att?U(c.att):null;
+  if(!u){return;}
+  const w=weaponOf(u,c.wi);
+  c.crit=u.critAt||9;
+  if(w){c.base=w.str;c.tl=w.tl;c.dmgC=w.critDmg||0;c.cs=w.critStatus||'';}
+}
+function applyAttack(){
+  const R=calcCompute(),c=S.calc;
+  push();
+  const au=R.au,tu=R.tu;
+  if(au&&!c.paid&&c.tl>0){addTL(au,c.tl);if(S.act&&S.act.id===au.id){S.act.primary=S.act.primary||'attack';}}
+  if(au&&!c.paid){S.last=au.side;}
+  if(au&&R.dis){au.st.disarm=false;}
+  if(tu){
+    tu.shield.up=Math.max(0,tu.shield.up-R.prevented);
+    tu.hp=Math.max(0,tu.hp-R.fin);
+    if(R.fracOn)tu.st.fracture=false;
+    if(R.critOn&&c.cs)tu.st[c.cs]=true;
+    log(t('attackLog',au?au.name:t('manual'),tu.name,R.hits,R.fin));
+    if(tu.hp<=0)defeat(tu,au);
+  }else{log(t('attackLog',au?au.name:t('manual'),t('manual'),R.hits,R.fin));}
+  c.paid=true;save();render();
+  toast(t('attackLog',au?au.name:t('manual'),tu?tu.name:t('manual'),R.hits,R.fin),true);
+}
+
+/* ---------- rendu ---------- */
+function icon(n){
+  const p={game:'<path d="M12 2.5l8 4.6v9.8l-8 4.6-8-4.6V7.1z"/><path d="M12 8v8M8.5 10v4M15.5 10v4"/>',
+    calc:'<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/>',
+    rules:'<path d="M5 4.5h10.5A2.5 2.5 0 0118 7v13H7.5A2.5 2.5 0 015 17.5z"/><path d="M5 17.5A2.5 2.5 0 017.5 15H18"/>',
+    gloss:'<path d="M5 6h14M5 12h14M5 18h9"/>',visu:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.5 6h7M7.5 8l3.5 8M16.5 8L13 16"/>'}[n];
+  return '<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
+}
+function hdr(){
+  return '<div class="brand"><h1>GUNDAM ASSEMBLE</h1><span>'+esc(t('sub'))+'</span></div>'+
+  '<div class="tools"><button class="b s" data-act="undo" '+(hist.length?'':'disabled style="opacity:.45"')+'>'+esc(t('undo'))+'</button>'+
+  '<div class="seg" role="group" aria-label="Langue"><button data-act="lang" data-v="fr" aria-pressed="'+(S.lang==='fr')+'">FR</button><button data-act="lang" data-v="en" aria-pressed="'+(S.lang==='en')+'">EN</button></div></div>';
+}
+function scoreSide(side){
+  const p=S.players[side];
+  return '<div class="pl '+side+'"><input class="pname" data-pname="'+side+'" value="'+esc(p.name)+'" placeholder="'+esc(t(side==='A'?'red':'blue'))+'" aria-label="'+esc(t('playerName'))+'">'+
+  '<div class="vprow"><div class="vp">'+p.vp+'</div><span>'+esc(t('vp'))+'</span></div>'+
+  '<div class="row"><button class="b xs" data-act="vp" data-s="'+side+'" data-n="-1">−1</button><button class="b xs" data-act="vp" data-s="'+side+'" data-n="1">+1</button><button class="b xs" data-act="vp" data-s="'+side+'" data-n="2">+2</button></div>'+
+  '<div class="deck">'+esc(t('hand'))+' <b>'+p.hand+'</b> · '+esc(t('deck'))+' <b>'+p.deck+'</b></div>'+
+  '<div class="row"><button class="b xs" data-act="card" data-s="'+side+'" data-n="play">'+esc(t('playCard'))+'</button><button class="b xs" data-act="card" data-s="'+side+'" data-n="draw">'+esc(t('drawCard'))+'</button></div></div>';
+}
+function score(){
+  const nx=nextUp();
+  let mid;
+  if(S.over)mid='<div class="ph">'+esc(t('gameOver'))+'</div>';
+  else mid='<div class="ph">'+esc(t('phase'))+' '+S.phase+'</div><div class="big">'+(nx?(nx.T%10+1):'–')+'<span class="rd">/10</span></div><div class="rd">'+esc(t('round'))+'</div>';
+  return scoreSide('A')+'<div class="mid">'+mid+'</div>'+scoreSide('B');
+}
+function chip(u,nxId,lg){
+  return '<button class="chip '+u.side+(u.id===nxId?' next':'')+(u.reserve?' res':'')+(S.sel===u.id?' sel':'')+(lg?' lg':'')+'" data-act="sel" data-id="'+u.id+'" title="'+esc(u.name)+'" aria-label="'+esc(u.name)+'">'+esc(abbr(u.name))+'</button>';
+}
+function banner(nx){
+  if(S.over){
+    const a=S.players.A.vp,b=S.players.B.vp;let w=a>b?'A':b>a?'B':(S.last||'A');
+    const tie=a===b;
+    return '<div class="banner '+w+'"><div><h2>'+esc(t('winner',pname(w)))+'</h2><p>'+esc(a+' – '+b+(tie?' · '+t('tieRule'):''))+'</p></div><div class="rowc"><button class="b" data-act="reopen">'+esc(t('resume'))+'</button><button class="b" data-act="newgame">'+esc(ARM==='newgame'?t('confirm'):t('newGame'))+'</button></div></div>';
+  }
+  if(!nx){
+    const last=S.phase>=2;
+    return '<div class="banner"><div><h2>'+esc(t('phaseEnd',S.phase))+'</h2><p>'+esc(S.phase===1?t('phaseEnd1'):t('phaseEnd2'))+'</p></div><div class="rowc">'+
+      (last?'<button class="b pri" data-act="finish">'+esc(t('finish'))+'</button><button class="b" data-act="nextphase" data-x="1">'+esc(t('extraPhase'))+'</button>':'<button class="b pri" data-act="nextphase">'+esc(t('startPhase',S.phase+1))+'</button>')+'</div></div>';
+  }
+  if(nx.tie){
+    return '<div class="banner"><div><h2>'+esc(t('tieTitle'))+'</h2><p>'+esc(S.tie||t('tieText'))+'</p></div><div class="rowc"><button class="b pri" data-act="tieroll">'+esc(t('rollBoth'))+'</button><button class="b" data-act="tiepick" data-s="A">'+esc(t('starts',pname('A')))+'</button><button class="b" data-act="tiepick" data-s="B">'+esc(t('starts',pname('B')))+'</button></div></div>';
+  }
+  const u=nx.u;
+  return '<div class="banner '+u.side+'"><div class="who">'+chip(u,u.id,true)+'<div><div class="lbl">'+esc(t('nextUp'))+'</div><h2>'+esc(u.name)+'</h2><p>'+esc(pname(u.side)+' · '+t('space')+' '+space(u)+(u.reserve?' · '+t('toDeploy'):''))+'</p></div></div><button class="b pri" data-act="activate" data-id="'+u.id+'">'+esc(t('activate'))+'</button></div>';
+}
+function timeline(nx){
+  const inP=S.units.filter(u=>!u.disabled&&u.T<S.phase*10);
+  const nxId=nx&&nx.u?nx.u.id:null,cur=nx?nx.T%10+1:0;
+  const lane=side=>{let h='';for(let i=1;i<=10;i++){const us=inP.filter(u=>u.side===side&&space(u)===i).sort((a,b)=>a.seq-b.seq);h+='<div class="cell'+(i===cur?' now':'')+'">'+us.map(u=>chip(u,nxId)).join('')+'</div>';}return h;};
+  let nums='';for(let i=1;i<=10;i++)nums+='<div class="num'+(i===cur?' now':'')+(i%5===0?' big':'')+'">'+i+'</div>';
+  const later=S.units.filter(u=>!u.disabled&&u.T>=S.phase*10).sort((a,b)=>a.T-b.T||a.seq-b.seq);
+  return '<div class="card" style="gap:8px"><div class="tl-legend"><span style="color:var(--red);font-weight:600">'+esc(pname('A'))+'</span><span>'+esc(t('tlHint'))+'</span><span style="color:var(--blue);font-weight:600">'+esc(pname('B'))+'</span></div>'+
+  '<div class="track"><div class="lane A">'+lane('A')+'</div><div class="nums">'+nums+'</div><div class="lane B">'+lane('B')+'</div></div>'+
+  (later.length?'<div class="tray"><span class="lbl">'+esc(t('laterPhase'))+'</span>'+later.map(u=>'<span class="it">'+chip(u,null)+'<span class="sm muted">P'+uph(u)+' · '+space(u)+'</span></span>').join('')+'</div>':'')+'</div>';
+}
+function stepper(label,val,act,id,key,extra){
+  return '<div class="step"><span>'+esc(label)+'</span><button class="b" data-act="'+act+'" data-id="'+id+'" data-k="'+key+'" data-n="-1" aria-label="−">−</button><span class="tn">'+val+'</span><button class="b" data-act="'+act+'" data-id="'+id+'" data-k="'+key+'" data-n="1" aria-label="+">+</button></div>';
+}
+function wline(w){
+  const bits=[];if(w.eff)bits.push(L(w.eff));if(w.crit)bits.push(L(w.crit));
+  return '<li><div><span class="wn">'+esc(w.name)+'</span>'+(bits.length?'<div class="muted sm">'+esc(bits.join(' '))+'</div>':'')+'</div><span class="wst">'+w.tl+' TL · '+t('rng')+' '+esc(w.range)+' · '+t('str')+' '+w.str+'</span></li>';
+}
+function abilHtml(u){
+  const a=u.abilities||[];if(!a.length)return '';
+  const tn={c:'ab_command',r:'ab_response',o:'ab_ongoing',s:'ab_setup'};
+  return '<div><div class="lbl" style="margin-bottom:4px">'+esc(t('abilities'))+'</div><div class="chips">'+a.map(x=>'<span class="ab '+x[1]+'">'+esc(x[0])+' <i>'+esc(t(tn[x[1]]||'ab_ongoing'))+(x[2]?' · ⚡'+x[2]:'')+'</i></span>').join('')+'</div>'+(a.some(x=>x[3])?'<ul class="adesc">'+a.filter(x=>x[3]).map(x=>'<li><b>'+esc(x[0])+'</b> — '+esc(L(x[3]))+'</li>').join('')+'</ul>':'')+(a.every(x=>x[3])?'':'<p class="note" style="margin-top:4px">'+esc(t('abilNote'))+'</p>')+'</div>';
+}
+function ucard(u){
+  const pos=u.disabled?t('disabled'):(u.T<S.phase*10?t('space')+' '+space(u):'P'+uph(u)+' · '+t('space')+' '+space(u));
+  const pct=u.max?Math.round(u.hp/u.max*100):0;
+  const sh=[];for(let i=0;i<u.shield.n;i++)sh.push('<button class="sh'+(i<u.shield.up?' on':'')+'" data-act="shtog" data-id="'+u.id+'" data-i="'+i+'" aria-label="'+esc(t('shield'))+'"></button>');
+  const sameCell=S.units.filter(x=>x.side===u.side&&x.T===u.T&&!x.disabled).length>1;
+  const isAct=S.act&&S.act.id===u.id;
+  return '<article class="ucard '+u.side+(S.sel===u.id?' sel':'')+(u.disabled?' off':'')+'" id="u-'+u.id+'">'+
+  '<div class="band"><span class="stat"><i>HP</i><b>'+u.hp+'</b><small>/'+u.max+'</small></span><span class="stat"><i>VP</i><b>'+u.vp+'</b></span><span class="stat"><i>TL</i><b>'+u.start+'</b></span><span class="pos">'+esc(pos)+'</span></div>'+
+  '<div class="ubody"><h3>'+esc(u.name)+'<small>'+esc([u.model,u.title].filter(Boolean).join(' · '))+'</small></h3>'+
+  '<div class="badges">'+(isAct?'<span class="badge act">'+esc(t('activeNow'))+'</span>':'')+(u.reserve&&!u.disabled?'<span class="badge">'+esc(t('reserve'))+'</span>':'')+(u.carrier?'<span class="badge">'+esc(t('carrier'))+'</span>':'')+(u.disabled?'<span class="badge">'+esc(t('disabled'))+'</span>':'')+'</div>'+
+  '<div class="hpbar" aria-hidden="true"><i class="'+(pct<=33?'low':'')+'" style="width:'+pct+'%"></i></div>'+
+  '<div class="rowc"><button class="b s" data-act="hp" data-id="'+u.id+'" data-n="-1">−1 '+esc(t('hpShort'))+'</button><button class="b s" data-act="hp" data-id="'+u.id+'" data-n="-2">−2</button><button class="b s" data-act="hp" data-id="'+u.id+'" data-n="-3">−3</button><button class="b s" data-act="hp" data-id="'+u.id+'" data-n="1">+1</button></div>'+
+  '<div class="grid2">'+stepper(t('energy'),u.energy,'stat',u.id,'energy')+stepper(t('speed'),u.speed,'stat',u.id,'speed')+stepper(t('strength'),u.str,'stat',u.id,'str')+
+  '<div class="step"><span>'+esc(t('shields'))+'</span><div class="shields">'+sh.join('')+'</div><button class="b" data-act="shadd" data-id="'+u.id+'" data-n="1" aria-label="+">+</button><button class="b" data-act="shadd" data-id="'+u.id+'" data-n="-1" aria-label="−">−</button></div></div>'+
+  '<div class="chips"><button class="tg" aria-pressed="'+u.st.disarm+'" data-act="st" data-id="'+u.id+'" data-k="disarm">'+esc(t('disarm'))+'</button><button class="tg" aria-pressed="'+u.st.fracture+'" data-act="st" data-id="'+u.id+'" data-k="fracture">'+esc(t('fracture'))+'</button><button class="tg" aria-pressed="'+u.st.slow+'" data-act="st" data-id="'+u.id+'" data-k="slow">'+esc(t('slow'))+'</button><button class="tg" aria-pressed="'+u.reserve+'" data-act="res" data-id="'+u.id+'">'+esc(t('reserve'))+'</button></div>'+
+  (u.weapons.length?'<ul class="wlist">'+u.weapons.map(wline).join('')+'</ul>':'')+abilHtml(u)+
+  '<details data-dk="m'+u.id+'"><summary>'+esc(t('moreUnit'))+'</summary><div style="display:flex;flex-direction:column;gap:10px">'+
+  '<div class="rowc"><span class="sm muted">'+esc(t('payTL'))+'</span>'+[1,2,3,4,5].map(n=>'<button class="b s" data-act="tl" data-id="'+u.id+'" data-n="'+n+'">+'+n+'</button>').join('')+'<button class="b s" data-act="tl" data-id="'+u.id+'" data-n="-1">−1</button></div>'+
+  (sameCell?'<div class="rowc"><span class="sm muted">'+esc(t('stackOrder'))+'</span><button class="b s" data-act="stack" data-id="'+u.id+'" data-n="-1">↑</button><button class="b s" data-act="stack" data-id="'+u.id+'" data-n="1">↓</button></div>':'')+
+  '<div class="rowc"><button class="b s" data-act="defeat" data-id="'+u.id+'">'+esc(t('defeat'))+'</button><button class="b s danger" data-act="del" data-id="'+u.id+'">'+esc(ARM==='del'+u.id?t('confirm'):t('remove'))+'</button></div>'+
+  '<div class="sm muted">'+esc(t('addWeapon'))+'</div><div class="frm"><label>'+esc(t('wName'))+'<input id="wn-'+u.id+'"></label><label>TL<input id="wt-'+u.id+'" type="number" min="0" value="2"></label><label>'+esc(t('rng'))+'<input id="wr-'+u.id+'" value="1"></label><label>'+esc(t('str'))+'<input id="ws-'+u.id+'" type="number" min="0" value="3"></label></div><div class="rowc"><button class="b s" data-act="wadd" data-id="'+u.id+'">'+esc(t('add'))+'</button>'+u.weapons.map((w,i)=>'<button class="b s" data-act="wdel" data-id="'+u.id+'" data-i="'+i+'" title="'+esc(t('remove'))+'">× '+esc(w.name)+'</button>').join('')+'</div>'+
+  '</div></details></div></article>';
+}
+function formHtml(){
+  const f=S.form;
+  return '<details class="card" id="addbox" data-dk="add"><summary style="font-family:var(--f-d);font-size:16px;color:var(--fg)">'+esc(t('addUnit'))+'</summary><div class="frm">'+
+  '<label>'+esc(t('side'))+'<select data-form="side"><option value="A"'+(f.side==='A'?' selected':'')+'>'+esc(pname('A'))+'</option><option value="B"'+(f.side==='B'?' selected':'')+'>'+esc(pname('B'))+'</option></select></label>'+
+  '<label>'+esc(t('preset'))+'<select data-form="preset" data-r="1"><option value="">'+esc(t('custom'))+'</option>'+PRESETS.map(p=>'<option value="'+p.id+'"'+(f.preset===p.id?' selected':'')+'>'+esc(p.name+(p.title?' · '+p.title:'')+' ('+p.set+')')+'</option>').join('')+'</select></label>'+
+  '<label>'+esc(t('name'))+'<input data-form="name" value="'+esc(f.name)+'"></label><label>'+esc(t('model'))+'<input data-form="model" value="'+esc(f.model)+'"></label>'+
+  '<label>'+esc(t('sigTitle'))+'<input data-form="title" value="'+esc(f.title)+'"></label>'+
+  '<label>HP<input data-form="hp" type="number" min="1" value="'+f.hp+'"></label><label>VP<input data-form="vp" type="number" min="0" value="'+f.vp+'"></label><label>'+esc(t('startTL'))+'<input data-form="start" type="number" min="1" max="10" value="'+f.start+'"></label>'+
+  '<label class="chk full"><input type="checkbox" data-form="carrier"'+(f.carrier?' checked':'')+'> '+esc(t('isCarrier'))+'</label>'+
+  '<div class="full rowc"><button class="b pri" data-act="addunit">'+esc(t('add'))+'</button>'+(f.weapons.length?'<span class="sm muted">'+esc(t('weaponsKept',f.weapons.length))+'</span>':'')+'</div></div></details>';
+}
+function game(){
+  const nx=nextUp();
+  let h='';
+  if(!S.units.length){
+    h+='<div class="card empty"><h2>'+esc(t('emptyTitle'))+'</h2><p class="note">'+esc(t('emptyText'))+'</p><div class="rowc"><button class="b pri" data-act="sample">'+esc(t('loadSample'))+'</button></div></div>';
+  }else{
+    h+=banner(nx)+timeline(nx);
+    const col=side=>{const us=S.units.filter(u=>u.side===side);return '<div class="col '+side+'"><h2><span>'+esc(pname(side))+'</span><span class="sm muted">'+us.length+' '+esc(t('units'))+'</span></h2>'+(us.map(ucard).join('')||'<p class="note">'+esc(t('noUnits'))+'</p>')+'</div>';};
+    h+='<div class="sides">'+col('A')+col('B')+'</div>';
+  }
+  h+=formHtml();
+  h+='<details class="card" data-dk="log"><summary style="font-family:var(--f-d);font-size:16px;color:var(--fg)">'+esc(t('journal'))+' ('+S.log.length+')</summary><ul class="log">'+(S.log.map(l=>'<li>'+esc(l)+'</li>').join('')||'<li class="muted">–</li>')+'</ul></details>';
+  h+='<div class="rowc"><button class="b s" data-act="newgame">'+esc(ARM==='newgame'?t('confirm'):t('newGameKeep'))+'</button><button class="b s danger" data-act="wipe">'+esc(ARM==='wipe'?t('confirm'):t('wipe'))+'</button></div>';
+  return h;
+}
+
+/* ---------- calculateur : vue ---------- */
+function opt(v,l,sel){return '<option value="'+esc(v)+'"'+(sel?' selected':'')+'>'+esc(l)+'</option>';}
+function cstep(label,key,val){return '<div class="step"><span>'+esc(label)+'</span><button class="b" data-act="cstep" data-k="'+key+'" data-n="-1" aria-label="−">−</button><span class="tn">'+(val>0?'+':'')+val+'</span><button class="b" data-act="cstep" data-k="'+key+'" data-n="1" aria-label="+">+</button></div>';}
+function ctog(key,label){return '<button class="tg" data-act="ctog" data-k="'+key+'" aria-pressed="'+S.calc[key]+'">'+esc(label)+'</button>';}
+function calcView(){
+  const c=S.calc,au=c.att?U(c.att):null,tu=c.tgt?U(c.tgt):null;
+  const R=calcCompute();
+  const attOpts=opt('',t('manual'),!c.att)+S.units.map(u=>opt(u.id,u.name+' · '+pname(u.side),u.id===c.att)).join('');
+  const tg=S.units.filter(u=>!au||u.side!==au.side);
+  const tgtOpts=opt('',t('manual'),!c.tgt)+tg.map(u=>opt(u.id,u.name+' · '+pname(u.side)+' ('+u.hp+' HP)',u.id===c.tgt)).join('');
+  const wOpts=au?au.weapons.map((w,i)=>opt(i,w.name+' ('+w.tl+' TL · '+t('str')+' '+w.str+')',i===c.wi)).join(''):'';
+  const w=au?weaponOf(au,c.wi):null;
+  let h='<div class="calc"><div class="col">';
+  h+='<div class="card"><h2>'+esc(t('attacker'))+'</h2><div class="frm"><label class="full">'+esc(t('unit'))+'<select id="c-att" data-c="att" data-r="1">'+attOpts+'</select></label>'+
+    (au&&au.weapons.length?'<label class="full">'+esc(t('weapon'))+'<select id="c-wi" data-c="wi" data-r="1">'+wOpts+'</select></label>':'')+
+    '<label>'+esc(t('baseStr'))+'<input id="c-base" type="number" min="0" data-c="base" value="'+c.base+'"></label><label>'+esc(t('tlCost'))+'<input id="c-tl" type="number" min="0" data-c="tl" value="'+c.tl+'"></label>'+
+    '<label>'+esc(t('critFrom'))+'<select id="c-crit" data-c="crit" data-r="1">'+[9,8,7].map(v=>opt(v,v+'+',c.crit===v)).join('')+'</select></label></div>'+
+    (w&&(w.eff||w.crit)?'<p class="note">'+esc([L(w.eff),L(w.crit)].filter(Boolean).join(' '))+'</p>':'')+
+    (au?'':'<div class="chips">'+ctog('mDis',t('disarm'))+'</div><div class="step"><span>'+esc(t('strUpgrades'))+'</span><button class="b" data-act="cstep" data-k="mUp" data-n="-1">−</button><span class="tn">'+c.mUp+'</span><button class="b" data-act="cstep" data-k="mUp" data-n="1">+</button></div>')+
+    (au&&au.st.disarm?'<p class="warn">'+esc(t('disarmedNote'))+'</p>':'')+'</div>';
+  h+='<div class="card"><h2>'+esc(t('target'))+'</h2><div class="frm"><label class="full">'+esc(t('unit'))+'<select id="c-tgt" data-c="tgt" data-r="1">'+tgtOpts+'</select></label></div>'+
+    (tu?'<p class="note">'+esc(t('targetInfo',tu.hp,tu.max,tu.shield.up,tu.st.fracture?t('fracture'):'–'))+'</p>':
+      '<div class="step"><span>'+esc(t('activeShields'))+'</span><button class="b" data-act="cstep" data-k="mShield" data-n="-1">−</button><span class="tn">'+c.mShield+'</span><button class="b" data-act="cstep" data-k="mShield" data-n="1">+</button></div><div class="chips">'+ctog('mFrac',t('fracture'))+'</div>')+'</div>';
+  h+='</div><div class="col">';
+  h+='<div class="card"><h2>'+esc(t('modifiers'))+'</h2><div class="frm"><label class="full">'+esc(t('elevation'))+'<select id="c-elev" data-c="elev" data-r="1">'+opt('same',t('elevSame'),c.elev==='same')+opt('tHigher',t('elevHigher'),c.elev==='tHigher')+opt('tLower',t('elevLower'),c.elev==='tLower')+'</select></label></div>'+
+    '<div class="chips">'+ctog('adj',t('adjacent'))+ctog('aW',t('aWater'))+ctog('tW',t('tWater'))+ctog('aD',t('aDebris'))+ctog('tD',t('tDebris'))+ctog('aM',t('aMino'))+ctog('tM',t('tMino'))+'</div>'+
+    '<div class="grid2 one">'+cstep(t('accManual'),'acc',c.acc)+cstep(t('strBonus'),'strBonus',c.strBonus)+cstep(t('dmgAll'),'dmgA',c.dmgA)+cstep(t('dmgCrit'),'dmgC',c.dmgC)+'</div>'+
+    '<div class="frm"><label>'+esc(t('critStatus'))+'<select id="c-cs" data-c="cs" data-r="1">'+opt('',t('none'),!c.cs)+opt('disarm',t('disarm'),c.cs==='disarm')+opt('fracture',t('fracture'),c.cs==='fracture')+opt('slow',t('slow'),c.cs==='slow')+'</select></label></div></div>';
+  h+='<div class="card"><h2>'+esc(t('dice'))+'</h2><div class="rowc"><button class="b pri" data-act="roll">'+esc(t('rollN',R.strTot))+'</button>'+(R.dis?'<button class="b" data-act="reroll">'+esc(t('rerollHits'))+'</button>':'')+'<button class="b" data-act="newatk">'+esc(t('newAttack'))+'</button></div>'+
+    '<label class="frm" style="display:block"><span class="sm muted">'+esc(t('diceHelp'))+'</span><input class="in" id="c-text" inputmode="numeric" autocomplete="off" placeholder="3 7 9 1 10" value="'+esc(c.text)+'"></label><div id="calc-result" class="cres">'+calcResult(R)+'</div></div>';
+  h+='</div></div>';
+  return h;
+}
+function calcResult(R){
+  const c=S.calc;
+  if(!R.dice.length)return '<p class="note">'+esc(t('noDice'))+'</p>';
+  let h='<div class="dice">'+R.dice.map(d=>'<div class="d '+d.k+'"><b>'+d.v+'</b><small>'+(d.k==='crit'?esc(t('crit')):d.k==='hit'?(d.m!==d.v?'→'+d.m:esc(t('hit'))):(d.v===1?esc(t('auto')):(d.m!==null?'→'+d.m:esc(t('miss'))))) +'</small></div>').join('')+'</div>';
+  h+='<p class="note">'+esc(t('accTotal'))+' <b>'+(R.acc>0?'+':'')+R.acc+'</b>'+(R.parts.length?' ('+esc(R.parts.join(', '))+')':'')+' · '+esc(t('diceCount',R.dice.length,R.strTot))+'</p>';
+  h+='<ul class="chain"><li><span>'+esc(t('hitsLine'))+'</span><b>'+R.hits+' ('+R.crits+' '+esc(t('critsShort'))+')</b></li>';
+  if(R.bonus)h+='<li><span>'+esc(t('dmgBonusLine'))+'</span><b>+'+R.bonus+'</b></li>';
+  if(R.sh)h+='<li><span>'+esc(t('shieldsLine',R.sh))+'</span><b>−'+R.prevented+'</b></li>';
+  if(R.fr)h+='<li><span>'+esc(t('fractureLine'))+'</span><b>'+(R.fracOn?'+3':'0')+'</b></li>';
+  h+='<li><span>'+esc(t('totalDamage'))+'</span><b class="final">'+R.fin+'</b></li>';
+  if(R.hpAfter!==null)h+='<li><span>'+esc(t('hpAfter'))+'</span><b>'+Math.max(0,R.hpAfter)+(R.hpAfter<=0?' · '+esc(t('defeated')):'')+'</b></li>';
+  h+='</ul>';
+  if(R.crits>0&&R.dis)h+='<p class="warn">'+esc(t('disarmNoCrit'))+'</p>';
+  if(R.critOn&&c.cs)h+='<p class="note">'+esc(t('willApply',t(c.cs)))+'</p>';
+  if(R.fr&&R.after<3&&R.after>0)h+='<p class="note">'+esc(t('fractureNote'))+'</p>';
+  h+='<div class="rowc"><button class="b pri" data-act="apply">'+esc(c.paid?t('applyNoTL'):t('apply'))+'</button></div>';
+  if(c.paid)h+='<p class="note">'+esc(t('paidNote'))+'</p>';
+  return h;
+}
+function updCalc(){const el=$('#calc-result');if(el)el.innerHTML=calcResult(calcCompute());}
+
+/* ---------- règles et glossaire ---------- */
+function rulesList(){
+  const q=norm(Q.rules.trim());
+  const secs=RULES.filter(r=>{if(!q)return true;const d=r[S.lang];return norm(d.t+' '+d.b.join(' ')).includes(q);});
+  if(!secs.length)return '<p class="note">'+esc(t('noResult'))+'</p>';
+  return secs.map(r=>{const d=r[S.lang];return '<details class="rule"'+(q?' open':'')+'><summary>'+esc(d.t)+'</summary><ul>'+d.b.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></details>';}).join('');
+}
+function rulesView(){
+  return '<div class="card"><h2>'+esc(t('quickRef'))+'</h2><div class="facts">'+FACTS.map(f=>'<div class="fact"><b>'+esc(f.k)+'</b><span>'+esc(f[S.lang])+'</span></div>').join('')+'</div></div>'+
+  '<input class="in" id="rq" type="search" placeholder="'+esc(t('searchRules'))+'" value="'+esc(Q.rules)+'" aria-label="'+esc(t('searchRules'))+'"><div id="rules-list" style="display:flex;flex-direction:column;gap:8px">'+rulesList()+'</div><p class="src">'+esc(t('srcNote'))+'</p>';
+}
+function glList(){
+  const q=norm(Q.gl.trim());
+  const g=GLOSS.filter(x=>!q||norm(x.join(' ')).includes(q));
+  if(!g.length)return '<p class="note">'+esc(t('noResult'))+'</p>';
+  return '<div class="gl">'+g.map(x=>{const fr=S.lang==='fr';return '<div class="term"><h3>'+esc(fr?x[1]:x[0])+' <small>'+esc(fr?x[0]:x[1])+'</small></h3><p>'+esc(fr?x[2]:x[3])+'</p></div>';}).join('')+'</div>';
+}
+function glView(){
+  return '<input class="in" id="gq" type="search" placeholder="'+esc(t('searchGloss'))+'" value="'+esc(Q.gl)+'" aria-label="'+esc(t('searchGloss'))+'"><div id="gl-list">'+glList()+'</div><p class="src">'+esc(t('srcNote'))+'</p>';
+}
+
+/* ---------- feuille d'activation ---------- */
+function sheetHtml(){
+  const a=S.act;if(!a)return '';
+  const u=U(a.id);if(!u)return '';
+  const w=u.weapons;
+  const from=(a.t0%10+1)+' (P'+(Math.floor(a.t0/10)+1)+')',to=space(u)+' (P'+uph(u)+')';
+  const pr=a.primary?t('primaryUsed',t('p_'+a.primary)):'';
+  let h='<div class="scrim"></div><div class="sheet '+u.side+'" role="dialog" aria-label="'+esc(t('activation'))+'">';
+  h+='<header><div class="who rowc" style="gap:10px">'+chip(u,null,true)+'<div><div class="lbl">'+esc(t('activation')+' · '+pname(u.side))+'</div><h2>'+esc(u.name)+'</h2></div></div><button class="b s" data-act="minsheet">'+esc(t('minimize'))+'</button></header>';
+  h+='<div class="rowc sp"><span class="sm"><b>TL</b> '+esc(t('space'))+' '+from+' → <b>'+to+'</b></span><span class="sm muted">'+esc(t('energy'))+' '+u.energy+' · '+esc(t('shields'))+' '+u.shield.up+'/'+u.shield.n+'</span></div>';
+  if(u.reserve)h+='<div class="sec"><h3>'+esc(t('deploy'))+'</h3><p class="note">'+esc(t('deployHelp'))+'</p><div class="rowc"><button class="b pri" data-act="deployed">'+esc(t('markDeployed'))+'</button></div></div>';
+  h+='<div class="sec"><h3>'+esc(t('advance'))+'</h3><p class="note">'+esc(t('advanceHelp',3+u.speed))+(u.st.slow?' '+t('slowedNote'):'')+'</p></div>';
+  h+='<div class="sec"><h3>'+esc(t('primary'))+'</h3>'+(pr?'<p class="warn" style="color:var(--muted)">'+esc(pr)+'</p>':'')+
+    '<div class="acts"><button class="b" data-act="prim" data-p="dash">'+esc(t('dash'))+'<small>2 TL · '+esc(t('dashSub'))+'</small></button><button class="b" data-act="prim" data-p="energize">'+esc(t('energize'))+'<small>2 TL · +1 '+esc(t('energy'))+'</small></button><button class="b" data-act="prim" data-p="rescue">'+esc(t('rescue'))+'<small>2 TL · +2 '+esc(t('vp'))+'</small></button></div>'+
+    (w.length?'<div class="sm muted">'+esc(t('attackWith'))+'</div><div class="acts">'+w.map((x,i)=>'<button class="b pri" data-act="atk" data-i="'+i+'">'+esc(x.name)+'<small>'+x.tl+' TL · '+esc(t('rng'))+' '+esc(x.range)+' · '+esc(t('str'))+' '+x.str+'</small></button>').join('')+'</div>':'<div class="acts"><button class="b pri" data-act="atk" data-i="-1">'+esc(t('attack'))+'<small>'+esc(t('manualAtk'))+'</small></button></div>')+'</div>';
+  h+='<div class="sec"><h3>'+esc(t('more'))+'</h3><div class="rowc"><span class="sm muted">'+esc(t('extraTL'))+'</span>'+[1,2,3,4].map(n=>'<button class="b s" data-act="tl" data-id="'+u.id+'" data-n="'+n+'">+'+n+'</button>').join('')+'<button class="b s" data-act="tl" data-id="'+u.id+'" data-n="-1">−1</button></div>'+
+    '<div class="rowc"><button class="b s" data-act="spendE">'+esc(t('spendEnergy'))+'</button><button class="b s" data-act="tactic" '+(a.tactic?'aria-pressed="true"':'')+'>'+esc(a.tactic?t('tacticDone'):t('tacticPlayed'))+'</button></div><p class="note">'+esc(t('cmdHelp'))+'</p></div>';
+  h+='<div class="rowc" style="justify-content:flex-end"><button class="b pri" data-act="endact">'+esc(t('endActivation'))+'</button></div></div>';
+  return h;
+}
+function renderSheet(){
+  const el=$('#sheet'),mini=$('#mini');
+  if(S.act&&!S.actMin){el.hidden=false;el.innerHTML=sheetHtml();mini.hidden=true;return;}
+  el.hidden=true;el.innerHTML='';
+  if(S.act){const u=U(S.act.id);mini.hidden=false;mini.innerHTML='<div class="'+u.side+'"><span class="sm"><b>'+esc(t('activation'))+'</b> · '+esc(u.name)+'</span><span class="rowc"><button class="b s" data-act="openSheet">'+esc(t('resumeAct'))+'</button><button class="b s pri" data-act="endact">'+esc(t('endActivation'))+'</button></span></div>';}
+  else mini.hidden=true;
+}
+function nav(){
+  const tabs=[['game',t('tabGame')],['calc',t('tabCalc')],['visu',t('tabVisu')],['rules',t('tabRules')],['gloss',t('tabGloss')]];
+  return tabs.map(x=>'<button data-act="tab" data-v="'+x[0]+'"'+(S.tab===x[0]?' aria-current="page"':'')+'>'+icon(x[0])+'<span>'+esc(x[1])+'</span></button>').join('');
+}
+function render(){
+  const openKeys=new Set([...document.querySelectorAll('details[data-dk][open]')].map(d=>d.dataset.dk));
+  document.documentElement.lang=S.lang;
+  $('#hdr').innerHTML=hdr();
+  $('#score').innerHTML=score();
+  $('#score').style.display=(S.tab==='game'||S.tab==='calc')?'':'none';
+  $('#view').innerHTML=S.tab==='game'?game():S.tab==='calc'?calcView():S.tab==='visu'?visuView():S.tab==='rules'?rulesView():glView();
+  $('#nav').innerHTML=nav();
+  document.querySelectorAll('details[data-dk]').forEach(d=>{if(openKeys.has(d.dataset.dk))d.open=true;});
+  renderSheet();
+}
+function arm(k){if(ARM===k){ARM=null;return true;}ARM=k;setTimeout(()=>{if(ARM===k){ARM=null;render();}},4000);render();return false;}
+
+/* ---------- Schémas ---------- */
+const sx=k=>esc(t(k));
+const SVG=(vb,inner,label,cls)=>'<svg class="sv'+(cls?' '+cls:'')+'" viewBox="'+vb+'" role="img" aria-label="'+esc(label||'')+'">'+inner+'</svg>';
+const fig=(inner,cap)=>'<figure class="fig">'+inner+(cap?'<figcaption>'+sx(cap)+'</figcaption>':'')+'</figure>';
+function hexPts(cx,cy,s){const p=[];for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);p.push((cx+s*Math.cos(a)).toFixed(1)+','+(cy+s*Math.sin(a)).toFixed(1));}return p.join(' ');}
+const hxy=(q,r,s)=>[s*Math.sqrt(3)*(q+r/2),s*1.5*r];
+function tok(x,y,side,ab,ghost,r){r=r||13;return ghost?'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" class="ghost '+side+'"/>':'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" class="tk'+side+'"/>'+(ab?'<text x="'+x+'" y="'+(y+4)+'" class="sv-t w">'+esc(ab)+'</text>':'');}
+function arrow(x1,y1,x2,y2,dash){const a=Math.atan2(y2-y1,x2-x1),h=7;const p=[[x2,y2],[x2-h*Math.cos(a-0.45),y2-h*Math.sin(a-0.45)],[x2-h*Math.cos(a+0.45),y2-h*Math.sin(a+0.45)]].map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');return '<path d="M'+x1+' '+y1+'L'+x2+' '+y2+'" class="ar'+(dash?' dash':'')+'"/><polygon points="'+p+'" class="ah"/>';}
+
+/* Timeline : exemple de jeton qui avance (avec retour case 1) */
+function dTrack(from,cost,side,ab){
+  const x0=8,cw=34,top=22,h=34,cy=top+h/2,cx=i=>x0+(i-1)*cw+cw/2;
+  let g='';
+  for(let i=1;i<=10;i++)g+='<rect x="'+(x0+(i-1)*cw)+'" y="'+top+'" width="'+cw+'" height="'+h+'" class="tk-cell '+side+'"/><text x="'+cx(i)+'" y="'+(top+h+15)+'" class="sv-t c'+(i%5===0?' b':'')+'">'+i+'</text>';
+  const T=from-1+cost,end=T%10+1,wrap=Math.floor(T/10),edge=x0+10*cw+3,left=x0-3;
+  if(!wrap)g+=arrow(cx(from)+15,cy,cx(end)-15,cy);
+  else g+='<path d="M'+(cx(from)+15)+' '+cy+'H'+edge+'V10H'+left+'V'+cy+'" class="ar dash"/>'+arrow(left,cy,cx(end)-15,cy);
+  g+=tok(cx(from),cy,side,ab,false)+tok(cx(end),cy,side,ab,true);
+  g+='<text x="'+((cx(from)+cx(end))/2)+'" y="'+(wrap?2:top-5)+'" class="sv-t c b">+'+cost+' TL</text>';
+  return SVG('0 -8 360 88',g,t('v_trackAria',from,cost,end));
+}
+function dStack(){
+  let g='';
+  [2,1,0].forEach(i=>{g+=tok(40,34+i*18,'A',['A','B','C'][i],false,14);});
+  [0,1,2].forEach(i=>{g+='<text x="72" y="'+(38+i*18)+'" class="sv-t b">'+(i+1)+'</text>';});
+  g+=arrow(100,30,100,76);
+  return SVG('0 0 130 96',g,t('v_stackAria'),'small');
+}
+function dGame(){
+  const sq=()=>'<div class="sq">'+[1,2,3,4,5,6,7,8,9,10].map(i=>'<i>'+i+'</i>').join('')+'</div>';
+  return '<div class="phs"><div class="lbl">'+sx('v_phase1')+'</div>'+sq()+'<div class="chain-row"><span class="sep">▾</span><span class="cr">'+sx('v_endp1')+'</span></div><div class="lbl">'+sx('v_phase2')+'</div>'+sq()+'<div class="chain-row"><span class="sep">▾</span><span class="cr">'+sx('v_endp2')+'</span></div></div>';
+}
+function dSetup(){
+  const k=['v_s1','v_s2','v_s3','v_s4','v_s5','v_s6'];
+  return '<div class="chain-row">'+k.map((x,i)=>(i?'<span class="sep">›</span>':'')+'<span class="cr">'+sx(x)+'</span>').join('')+'</div>';
+}
+function dFlow(){
+  return '<div class="flow"><div class="fb s">'+sx('v_f1')+'</div><i class="ch">▾</i><div class="fb">'+sx('v_f2')+'</div><i class="ch">▾</i><div class="fb">'+sx('v_f3')+'</div><i class="ch">▾</i>'+
+  '<div class="fb main"><b>'+sx('v_f4')+'</b><div class="four"><div><b>'+sx('v_attack')+'</b>'+sx('v_f4a')+'</div><div><b>'+sx('v_dash')+'</b>2 TL · '+sx('v_f4b')+'</div><div><b>'+sx('v_energize')+'</b>2 TL · +1 '+sx('v_energy')+'</div><div><b>'+sx('v_rescue')+'</b>2 TL · +2 '+sx('v_vp')+'</div></div></div><i class="ch">▾</i>'+
+  '<div class="fb">'+sx('v_f5')+'</div><i class="ch">▾</i><div class="fb s">'+sx('v_f6')+'</div></div>';
+}
+function dSteps(){
+  const row=(n,k,chip,cls)=>'<li class="'+(cls||'')+'"><span class="sn">'+n+'</span><span>'+sx(k)+'</span>'+(chip?'<span class="rt '+chip+'">'+sx('v_rt_'+chip)+'</span>':'')+'</li>';
+  return '<ol class="steps"><li class="grp">'+sx('v_g1')+'</li>'+row(1,'v_a1')+row(2,'v_a2')+row(3,'v_a3')+'<li class="grp">'+sx('v_g2')+'</li>'+row(4,'v_a4','before')+row(5,'v_a5','','roll')+row(6,'v_a6','after')+'<li class="grp">'+sx('v_g3')+'</li>'+row(7,'v_a7')+row(8,'v_a8')+row(9,'v_a9','dmg')+'</ol>';
+}
+function dDice(){
+  const rows=[[-1,'−1'],[0,'0'],[1,'+1']],cw=26,x0=58;
+  let g='';
+  rows.forEach((r,ri)=>{
+    const y=26+ri*40;
+    g+='<text x="2" y="'+(y+17)+'" class="sv-t b">'+sx('v_acc')+' '+r[1]+'</text>';
+    for(let v=1;v<=10;v++){
+      const k=v===1?'miss':v>=9?'crit':(v+r[0]>=4?'hit':'miss');
+      g+='<rect x="'+(x0+(v-1)*(cw+1))+'" y="'+y+'" width="'+cw+'" height="26" rx="3" class="dc-'+k+'"/><text x="'+(x0+(v-1)*(cw+1)+cw/2)+'" y="'+(y+18)+'" class="sv-t c b '+(k==='miss'?'m':k==='hit'?'on-g':'on-a')+'">'+v+'</text>';
+    }
+  });
+  g+='<text x="'+x0+'" y="14" class="sv-t m">'+sx('v_dieFace')+'</text>';
+  const ly=146;
+  [['miss','v_miss'],['hit','v_hit'],['crit','v_crit']].forEach((l,i)=>{const x=x0+i*92;g+='<rect x="'+x+'" y="'+(ly-10)+'" width="12" height="12" rx="2" class="dc-'+l[0]+'"/><text x="'+(x+17)+'" y="'+ly+'" class="sv-t">'+sx(l[1])+'</text>';});
+  return SVG('0 0 340 154',g,t('v_diceAria'));
+}
+function dDamage(){
+  return '<div class="eq"><div class="eqb"><b>4</b><span class="sm muted">'+sx('v_hits')+'</span></div><span class="eqo">−</span><div class="eqb"><b>1</b><span class="sm muted">'+sx('v_shieldAct')+'</span></div><span class="eqo">=</span><div class="eqb"><b>3</b><span class="sm muted">'+sx('v_dmg')+'</span></div></div>'+
+  '<ul class="ml"><li>'+sx('v_d1')+'</li><li>'+sx('v_d2')+'</li><li>'+sx('v_d3')+'</li></ul>';
+}
+function dPrec(){
+  const r=(c,k,v,cl)=>'<tr><td><span class="sw" style="background:'+c+'"></span></td><td>'+sx(k)+'</td><td class="'+cl+'">'+v+'</td></tr>';
+  return '<table class="prec"><tbody>'+r('var(--s2)','v_p_higher','−1','neg')+r('var(--s2)','v_p_lower','+1','pos')+r('var(--teal)','v_p_water','−1 / −1','neg')+r('var(--muted)','v_p_debris','−1 / −1','neg')+r('var(--pink)','v_p_mino','−2','neg')+'</tbody></table><p class="note">'+sx('v_p_note')+'</p>';
+}
+function dHex(limit,enemy){
+  const s=15,R=3,dirs=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]],key=(q,r)=>q+','+r;
+  const dist={};dist[key(0,0)]=0;const queue=[[0,0]];
+  while(queue.length){const c=queue.shift(),d=dist[key(c[0],c[1])];if(d>=limit)continue;
+    dirs.forEach(x=>{const nq=c[0]+x[0],nr=c[1]+x[1];if(Math.max(Math.abs(nq),Math.abs(nr),Math.abs(nq+nr))>R)return;if(enemy&&nq===enemy[0]&&nr===enemy[1])return;const k=key(nq,nr);if(dist[k]!==undefined)return;dist[k]=d+1;queue.push([nq,nr]);});}
+  let g='';
+  for(let q=-R;q<=R;q++)for(let r=-R;r<=R;r++){
+    if(Math.abs(q+r)>R)continue;
+    const p=hxy(q,r,s),d=dist[key(q,r)],isE=enemy&&q===enemy[0]&&r===enemy[1];
+    g+='<polygon points="'+hexPts(p[0],p[1],s-1)+'" class="'+(isE?'hx-e':d===0?'hx-me':d!==undefined?'hx-ok':'hx')+'"/>';
+    if(isE)g+='<text x="'+p[0]+'" y="'+(p[1]+4)+'" class="sv-t w">Z</text>';
+    else if(d===0)g+='<text x="'+p[0]+'" y="'+(p[1]+4)+'" class="sv-t w">G</text>';
+    else if(d!==undefined)g+='<text x="'+p[0]+'" y="'+(p[1]+4)+'" class="sv-t c b">'+d+'</text>';
+  }
+  return SVG('-125 -86 250 172',g,t('v_hexAria',limit));
+}
+function dElev(){
+  let g='<rect x="0" y="108" width="300" height="14" class="ground"/><rect x="110" y="78" width="60" height="30" class="terr"/><rect x="170" y="48" width="60" height="60" class="terr2"/>';
+  g+=tok(50,96,'B','G',false,12)+tok(140,66,'B','',true,12)+tok(200,36,'B','',true,12);
+  g+='<text x="140" y="98" class="sv-t w">1</text><text x="200" y="84" class="sv-t w">2</text><text x="12" y="119" class="sv-t">0</text>';
+  return SVG('0 0 300 124',g,t('v_elevAria'))+'<div class="chain-row"><span class="cr">'+sx('v_e1')+'</span><span class="cr">'+sx('v_e2')+'</span><span class="cr">'+sx('v_e3')+'</span><span class="cr">'+sx('v_e4')+'</span></div>';
+}
+function dLos(kind){
+  let g='<rect x="0" y="90" width="200" height="14" class="ground"/>',ax=30,ay=81,tx=170,ty=81,v='bad';
+  const u=(x,y,c)=>'<circle cx="'+x+'" cy="'+y+'" r="9" class="'+c+'"/>';
+  if(kind==='terr')g+='<rect x="80" y="58" width="40" height="32" class="terr"/>';
+  if(kind==='over'){g+='<rect x="8" y="60" width="44" height="30" class="terr"/>'+u(100,81,'u-en');ay=51;v='good';}
+  if(kind==='enemy')g+=u(100,81,'u-en');
+  if(kind==='ally'){g+=u(100,81,'u-al');v='good';}
+  g+='<line x1="'+ax+'" y1="'+ay+'" x2="'+tx+'" y2="'+ty+'" class="los '+v+'"/>'+u(ax,ay,'u-me')+u(tx,ty,'u-en');
+  g+=v==='good'?'<circle cx="184" cy="18" r="11" class="vgood"/><polyline points="178,18 183,23 191,13" class="vmark"/>':'<circle cx="184" cy="18" r="11" class="vbad"/><path d="M179 13L189 23M189 13L179 23" class="vmark"/>';
+  return fig(SVG('0 0 200 106',g,t('v_los_'+kind)),'v_los_'+kind);
+}
+function dStatus(){
+  const c=(k,a,b,c2)=>'<div class="tile"><b>'+sx(k)+'</b><div class="chain-row"><span class="cr">'+sx(a)+'</span><span class="sep">→</span><span class="cr">'+sx(b)+'</span></div><p class="note" style="margin-top:6px">'+sx(c2)+'</p></div>';
+  return '<div class="tiles one">'+c('v_disarm','v_st1a','v_st1b','v_st1c')+c('v_fracture','v_st2a','v_st2b','v_st2c')+c('v_slow','v_st3a','v_st3b','v_st3c')+'</div>';
+}
+function dPush(){
+  const s=17,w=Math.sqrt(3)*s,X=i=>22+i*w,rows=[34,92,150],titles=['v_push2','v_collide','v_pull1'];
+  const hx=(i,y,c)=>'<polygon points="'+hexPts(X(i),y,s-1)+'" class="'+(c||'hx')+'"/>';
+  let g='';
+  rows.forEach((y,ri)=>{g+='<text x="4" y="'+(y-26)+'" class="sv-t b">'+sx(titles[ri])+'</text>';for(let i=0;i<6;i++)g+=hx(i,y);});
+  g+=tok(X(0),34,'B','G',false,10)+tok(X(1),34,'A','Z',false,10)+tok(X(3),34,'A','',true,10)+arrow(X(1)+12,34,X(3)-13,34);
+  g+=hx(2,92,'hx-w')+tok(X(0),92,'B','G',false,10)+tok(X(1),92,'A','Z',false,10)+'<text x="'+X(3)+'" y="97" class="sv-t c b neg">−2</text>'+arrow(X(0)+12,92,X(1)-12,92,true);
+  g+=tok(X(0),150,'B','G',false,10)+tok(X(3),150,'A','Z',false,10)+tok(X(2),150,'A','',true,10)+arrow(X(3)-12,150,X(2)+13,150);
+  return SVG('0 0 220 176',g,t('v_pushAria'));
+}
+function dTerrain(){
+  const r=(c,k,a,b)=>'<div class="tile"><div class="rowc"><span class="sw" style="background:'+c+'"></span><b style="font-size:16px">'+sx(k)+'</b></div><p class="note" style="margin-top:4px">'+sx(a)+'</p>'+(b?'<p class="note">'+sx(b)+'</p>':'')+'</div>';
+  return '<div class="tiles">'+r('var(--teal)','v_water','v_water1','v_water2')+r('var(--muted)','v_debris','v_water1','v_water2')+r('var(--pink)','v_mino','v_mino1','v_mino2')+r('var(--fg)','v_imp','v_imp1','')+'</div>';
+}
+function dVP(){
+  const r=(v,k)=>'<div class="tile"><b>'+v+'</b><span class="sm muted">'+sx(k)+'</span></div>';
+  return '<div class="tiles">'+r('VP','v_vp1')+r('+2','v_vp2')+r('+2','v_vp3')+r('★','v_vp4')+'</div>';
+}
+function dObj(){
+  return '<div class="eq"><div class="eqb"><b style="color:var(--blue)">2</b><span class="sm muted">'+sx('v_o_ally')+'</span></div><span class="eqo">&gt;</span><div class="eqb"><b style="color:var(--red)">1</b><span class="sm muted">'+sx('v_o_enemy')+'</span></div><span class="eqo">=</span><div class="eqb"><b>✓</b><span class="sm muted">'+sx('v_o_win')+'</span></div></div><ul class="ml"><li>'+sx('v_o1')+'</li><li>'+sx('v_o2')+'</li><li>'+sx('v_o3')+'</li></ul>';
+}
+function dCarrier(){return '<ul class="ml"><li>'+sx('v_cr1')+'</li><li>'+sx('v_cr2')+'</li><li>'+sx('v_cr3')+'</li><li>'+sx('v_cr4')+'</li></ul>';}
+function dEngaged(){
+  return '<div class="figs"><figure class="fig">'+dHex(3,null)+'<figcaption>'+sx('v_hex3')+'</figcaption></figure><figure class="fig">'+dHex(2,[1,0])+'<figcaption>'+sx('v_hex2')+'</figcaption></figure></div>';
+}
+function dFacts(){return '<div class="facts">'+FACTS.map(f=>'<div class="fact"><b>'+esc(f.k)+'</b><span>'+esc(f[S.lang])+'</span></div>').join('')+'</div>';}
+
+/* mode Apprendre : 8 chapitres dans l'ordre de jeu */
+function chap(n,tk,lk,figs,eg){
+  return '<section class="chap" id="ch'+n+'"><header><span class="cn">'+n+'</span><h2>'+sx(tk)+'</h2></header><p class="lead">'+sx(lk)+'</p><div class="figs">'+figs+'</div>'+(eg?'<div class="eg"><span class="lbl">'+sx('v_example')+'</span><p>'+sx(eg)+'</p></div>':'')+'</section>';
+}
+function visuLearn(){
+  const nav='<div class="chips">'+[1,2,3,4,5,6,7,8].map(n=>'<button class="tg" data-act="jump" data-id="ch'+n+'">'+n+' · '+sx('v_c'+n+'s')+'</button>').join('')+'</div>';
+  let h='<p class="note">'+sx('v_introLearn')+'</p>'+nav;
+  h+=chap(1,'v_c1','v_c1l',fig(dGame(),'v_c1f1')+fig(dSetup(),'v_c1f2'));
+  h+=chap(2,'v_c2','v_c2l',fig(dTrack(1,3,'B','G'),'v_c2f1')+fig(dTrack(8,4,'A','Z'),'v_c2f2')+fig(dStack(),'v_c2f3'),'v_c2e');
+  h+=chap(3,'v_c3','v_c3l',fig(dFlow(),''));
+  h+=chap(4,'v_c4','v_c4l','<div style="grid-column:1/-1">'+dEngaged()+'</div>'+fig(dElev(),'v_c4f3'));
+  h+=chap(5,'v_c5','v_c5l',fig(dSteps(),'')+fig(dDice(),'v_c5f2')+fig(dPrec(),'')+fig(dDamage(),''),'v_c5e');
+  h+=chap(6,'v_c6','v_c6l',dLos('terr')+dLos('enemy')+dLos('over')+dLos('ally'));
+  h+=chap(7,'v_c7','v_c7l',fig(dStatus(),'')+fig(dPush(),'v_c7f2')+fig(dTerrain(),''));
+  h+=chap(8,'v_c8','v_c8l',fig(dVP(),'')+fig(dObj(),'v_c8f2'));
+  return h;
+}
+/* mode À la table : fiche dense, blocs rares repliés */
+function tcard(tk,inner){return '<div class="card"><h2>'+sx(tk)+'</h2>'+inner+'</div>';}
+function tdet(tk,inner){return '<details class="card" data-dk="'+tk+'"><summary style="font-family:var(--f-d);font-size:16px;color:var(--fg)">'+sx(tk)+'</summary><div style="display:flex;flex-direction:column;gap:10px">'+inner+'</div></details>';}
+function visuTable(){
+  let h='<p class="note">'+sx('v_introTable')+'</p>';
+  h+='<div class="tgrid">'+tcard('v_t_act',dFlow())+tcard('v_t_atk',dSteps())+tcard('v_t_hit',dDice()+dPrec())+tcard('v_t_dmg',dDamage()+dStatus())+'</div>';
+  h+=tcard('v_t_facts',dFacts());
+  h+=tdet('v_t_tl','<div class="figs">'+fig(dTrack(1,3,'B','G'),'v_c2f1')+fig(dTrack(8,4,'A','Z'),'v_c2f2')+fig(dStack(),'v_c2f3')+'</div>');
+  h+=tdet('v_t_move',dEngaged()+dElev());
+  h+=tdet('v_t_los','<div class="figs">'+dLos('terr')+dLos('enemy')+dLos('over')+dLos('ally')+'</div>');
+  h+=tdet('v_t_push',dPush());
+  h+=tdet('v_t_terr',dTerrain());
+  h+=tdet('v_t_vp',dVP()+dObj());
+  h+=tdet('v_t_carrier',dCarrier());
+  h+=tdet('v_t_game',dGame()+dSetup());
+  return h;
+}
+function visuView(){
+  return '<div class="seg wide" role="group"><button data-act="vmode" data-v="learn" aria-pressed="'+(S.vmode!=='table')+'">'+sx('v_learn')+'</button><button data-act="vmode" data-v="table" aria-pressed="'+(S.vmode==='table')+'">'+sx('v_table')+'</button></div>'+(S.vmode==='table'?visuTable():visuLearn());
+}
+
+/* ---------- événements ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const d=b.dataset,a=d.act,u=d.id?U(d.id):null,n=Number(d.n);
+  switch(a){
+    case 'undo':undo();break;
+    case 'vmode':S.vmode=d.v;save();render();window.scrollTo(0,0);break;
+    case 'jump':{const el=document.getElementById(d.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});break;}
+    case 'lang':S.lang=d.v;save();render();break;
+    case 'tab':S.tab=d.v;save();render();window.scrollTo(0,0);break;
+    case 'vp':mut(()=>addVP(d.s,n,t('manualVP')));break;
+    case 'card':mut(()=>{const p=S.players[d.s];if(d.n==='play')p.hand=Math.max(0,p.hand-1);else if(p.deck>0){p.deck--;p.hand++;}});break;
+    case 'sel':{S.sel=d.id;save();render();const el=document.getElementById('u-'+d.id);if(el)el.scrollIntoView({block:'center',behavior:'smooth'});break;}
+    case 'activate':startAct(d.id);break;
+    case 'tieroll':mut(()=>{let x,y;do{x=rnd();y=rnd();}while(x===y);S.last=x>y?'B':'A';S.tie=t('tieResult',pname('A'),x,pname('B'),y,pname(x>y?'A':'B'));log(S.tie);});break;
+    case 'tiepick':mut(()=>{S.last=other(d.s);S.tie='';});break;
+    case 'nextphase':mut(()=>endPhase(!!d.x),t('phaseStarted',S.phase+1));break;
+    case 'finish':mut(()=>{S.over=true;});break;
+    case 'reopen':mut(()=>{S.over=false;});break;
+    case 'hp':mut(()=>{u.hp=clamp(u.hp+n,0,u.max);if(u.hp<=0)defeat(u);},n<0?t('damageLog',u.name,-n):null);break;
+    case 'stat':mut(()=>{u[d.k]=Math.max(0,u[d.k]+n);});break;
+    case 'shadd':mut(()=>{if(n>0){u.shield.n++;u.shield.up++;}else if(u.shield.n>0){u.shield.n--;u.shield.up=Math.min(u.shield.up,u.shield.n);}});break;
+    case 'shtog':mut(()=>{const i=Number(d.i);u.shield.up=(i<u.shield.up)?i:i+1;});break;
+    case 'st':mut(()=>{u.st[d.k]=!u.st[d.k];});break;
+    case 'res':mut(()=>{u.reserve=!u.reserve;});break;
+    case 'tl':mut(()=>{addTL(u,n);},t('tlLog',u.name,n));break;
+    case 'stack':mut(()=>{const g=S.units.filter(x=>x.side===u.side&&x.T===u.T&&!x.disabled).sort((p,q)=>p.seq-q.seq);const i=g.indexOf(u),j=i+n;if(j>=0&&j<g.length){const s=g[i].seq;g[i].seq=g[j].seq;g[j].seq=s;}});break;
+    case 'defeat':mut(()=>defeat(u),t('defeatedLog',u.name));break;
+    case 'del':if(arm('del'+d.id))mut(()=>{S.units=S.units.filter(x=>x.id!==d.id);if(S.act&&S.act.id===d.id)S.act=null;});break;
+    case 'wadd':{const g=k=>document.getElementById(k+'-'+d.id);const nm=g('wn').value.trim();if(!nm)break;mut(()=>{u.weapons.push({name:nm,tl:Number(g('wt').value)||0,range:g('wr').value||'1',str:Number(g('ws').value)||0});});break;}
+    case 'wdel':mut(()=>{u.weapons.splice(Number(d.i),1);});break;
+    case 'addunit':{const f=S.form;if(!f.name.trim()){toast(t('nameReq'),false);break;}mut(()=>{S.units.push(mkUnit({side:f.side,name:f.name.trim(),model:f.model,title:f.title,hp:Math.max(1,Number(f.hp)||1),vp:Number(f.vp)||0,start:clamp(Number(f.start)||1,1,10),carrier:f.carrier,critAt:f.critAt||9,weapons:f.weapons,abilities:f.abilities||[]}));S.form=Object.assign(newForm(),{side:f.side});},t('unitAdded',f.name));break;}
+    case 'sample':mut(()=>{['st01-u01','pa01-u03','book-buster'].forEach(id=>{const p=PRESETS.find(x=>x.id===id);S.units.push(mkUnit(Object.assign({side:'A'},p,{abilities:p.abil||[]})));});['st01-u02','book-oggo'].forEach(id=>{const p=PRESETS.find(x=>x.id===id);S.units.push(mkUnit(Object.assign({side:'B'},p,{abilities:p.abil||[]})));});});break;
+    case 'newgame':if(arm('newgame')){resetGame(false);save();render();}break;
+    case 'wipe':if(arm('wipe')){resetGame(true);save();render();}break;
+    /* activation */
+    case 'minsheet':S.actMin=true;save();render();break;
+    case 'openSheet':S.actMin=false;save();render();break;
+    case 'deployed':mut(()=>{U(S.act.id).reserve=false;},t('deployedLog',U(S.act.id).name));break;
+    case 'prim':mut(()=>{const x=U(S.act.id);addTL(x,2);S.act.primary=S.act.primary||d.p;if(d.p==='energize')x.energy++;if(d.p==='rescue')addVP(x.side,2,t('rescueLog'));},t('primLog',U(S.act.id).name,t('p_'+d.p)));break;
+    case 'atk':{const x=U(S.act.id);S.calc=Object.assign(newCalc(),{att:x.id});S.calc.wi=Math.max(0,Number(d.i));pickWeapon();if(!x.weapons.length){S.calc.tl=0;}S.tab='calc';S.actMin=true;save();render();window.scrollTo(0,0);break;}
+    case 'spendE':mut(()=>{const x=U(S.act.id);x.energy=Math.max(0,x.energy-1);});break;
+    case 'tactic':mut(()=>{if(!S.act.tactic){S.act.tactic=true;const p=S.players[U(S.act.id).side];p.hand=Math.max(0,p.hand-1);}});break;
+    case 'endact':endAct();break;
+    /* calc */
+    case 'cstep':{const k=d.k;S.calc[k]=(k==='mShield'||k==='mUp')?Math.max(0,S.calc[k]+n):S.calc[k]+n;save();render();break;}
+    case 'ctog':S.calc[d.k]=!S.calc[d.k];save();render();break;
+    case 'roll':{const R=calcCompute();S.calc.text=Array.from({length:clamp(R.strTot,0,40)},rnd).join(' ');S.calc.paid=false;save();render();break;}
+    case 'reroll':{const R=calcCompute();S.calc.text=R.dice.map(x=>x.k==='miss'?x.v:rnd()).join(' ');save();render();break;}
+    case 'newatk':S.calc.text='';S.calc.paid=false;save();render();break;
+    case 'apply':applyAttack();break;
+  }
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset.pname){S.players[el.dataset.pname].name=el.value.trim();save();return;}
+  if(el.dataset.form){const k=el.dataset.form;S.form[k]=el.type==='checkbox'?el.checked:(el.type==='number'?Number(el.value):el.value);
+    if(k==='preset'){const p=PRESETS.find(x=>x.id===el.value);if(p)Object.assign(S.form,{name:p.name,model:p.model,title:p.title,hp:p.hp,vp:p.vp,start:p.start,critAt:p.critAt||9,weapons:JSON.parse(JSON.stringify(p.weapons)),abilities:JSON.parse(JSON.stringify(p.abil||[]))});else Object.assign(S.form,{name:'',model:'',title:'',weapons:[],abilities:[],critAt:9});}
+    save();if(el.dataset.r)render();return;}
+  if(el.dataset.c){const k=el.dataset.c;let v=el.value;
+    if(el.type==='number')v=Number(v)||0;else if(k==='wi'||k==='crit')v=Number(v);
+    S.calc[k]=v;
+    if(k==='att'){S.calc.wi=0;S.calc.paid=false;if(v){pickWeapon();}else{S.calc.crit=9;}const au=v?U(v):null;if(au&&S.calc.tgt){const tu=U(S.calc.tgt);if(tu&&tu.side===au.side)S.calc.tgt='';}}
+    if(k==='wi'){pickWeapon();}
+    save();if(el.dataset.r)render();else updCalc();}
+});
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.id==='c-text'){S.calc.text=el.value;S.calc.paid=false;save();updCalc();}
+  else if(el.id==='rq'){Q.rules=el.value;$('#rules-list').innerHTML=rulesList();}
+  else if(el.id==='gq'){Q.gl=el.value;$('#gl-list').innerHTML=glList();}
+  else if(el.dataset&&el.dataset.c&&el.type==='number'){S.calc[el.dataset.c]=Number(el.value)||0;save();updCalc();}
+});
+if(window.claude&&window.claude.hot&&window.claude.hot.snapshot){try{window.claude.hot.snapshot(()=>({}));}catch(e){}}
+render();
+})();
+
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
