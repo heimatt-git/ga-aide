@@ -1056,7 +1056,7 @@ function push(){hist.push(snap());if(hist.length>60)hist.shift();}
 function undo(){if(!hist.length){toast(t('nothingUndo'),false);return;}Object.assign(S,JSON.parse(hist.pop()));save();render();toast(t('undone'),false);}
 function log(m){S.log.unshift(m);if(S.log.length>80)S.log.pop();}
 function mut(fn,msg){push();fn();if(msg)log(msg);save();render();if(msg)toast(msg,true);}
-function toast(msg,canUndo){const el=$('#toast');el.innerHTML='<span>'+esc(msg)+'</span>'+(canUndo?'<button data-act="undo">'+esc(t('undo'))+'</button>':'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},5000);}
+function toast(msg,canUndo){const el=$('#toast');el.innerHTML='<span>'+esc(msg)+'</span>'+(canUndo?'<button data-act="undo">'+esc(t('undo'))+'</button>':'');el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true;},3000);}
 
 /* ---------- logique de jeu ---------- */
 function mkUnit(o){const id='u'+(++S.seq);const base={side:'A',name:'',model:'',title:'',hp:10,vp:5,start:2,energy:0,shield:{n:0,up:0},speed:0,str:0,st:{disarm:false,fracture:false,slow:false},reserve:true,disabled:false,carrier:false,doneAt:null,critAt:9,weapons:[],abilities:[]};
